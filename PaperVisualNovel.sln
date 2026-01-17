@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36301.6 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PaperVisualNovel", "PaperVisualNovel\PaperVisualNovel.vcxproj", "{AE67CD47-18D7-414E-A61D-20A2A004D9C7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{9FA3D6BD-1EC1-3BA5-80CB-CE02773A58D5}"
+	ProjectSection(SolutionItems) = preProject
+		PaperVisualNovel\data.cfg = PaperVisualNovel\data.cfg
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AE67CD47-18D7-414E-A61D-20A2A004D9C7}.Debug|x64.ActiveCfg = Debug|x64
+		{AE67CD47-18D7-414E-A61D-20A2A004D9C7}.Debug|x64.Build.0 = Debug|x64
+		{AE67CD47-18D7-414E-A61D-20A2A004D9C7}.Debug|x86.ActiveCfg = Debug|Win32
+		{AE67CD47-18D7-414E-A61D-20A2A004D9C7}.Debug|x86.Build.0 = Debug|Win32
+		{AE67CD47-18D7-414E-A61D-20A2A004D9C7}.Release|x64.ActiveCfg = Release|x64
+		{AE67CD47-18D7-414E-A61D-20A2A004D9C7}.Release|x64.Build.0 = Release|x64
+		{AE67CD47-18D7-414E-A61D-20A2A004D9C7}.Release|x86.ActiveCfg = Release|Win32
+		{AE67CD47-18D7-414E-A61D-20A2A004D9C7}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9F60B543-6488-42FB-9660-6946813B68C0}
+	EndGlobalSection
+EndGlobal

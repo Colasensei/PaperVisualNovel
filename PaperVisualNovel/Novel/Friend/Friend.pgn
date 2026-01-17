@@ -1,0 +1,31 @@
+// 示例：简单的对话系统
+say 你好，冒险者！ 0.8 white
+wait 1000
+
+set friendship = 0
+
+choose 2 友好的打招呼 不理睬
+
+友好的打招呼:
+say 你好！今天天气真不错。 0.5 green
+set friendship += 10
+jump CONTINUE
+
+不理睬:
+say ...（你选择了沉默） 0.5 red
+set friendship -= 5
+jump CONTINUE
+
+
+CONTINUE:
+if friendship > 5 FRIEND
+say 你们的关系似乎不太好... 0.5 purple
+jump END_DIALOGUE
+
+FRIEND:
+say 你们成为了朋友！ 0.8 yellow
+
+END_DIALOGUE:
+say 对话结束 0.5 white
+endname GoodEnd
+end

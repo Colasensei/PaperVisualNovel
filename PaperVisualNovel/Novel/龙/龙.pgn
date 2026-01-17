@@ -1,0 +1,128 @@
+// ===============================
+// 游戏：龙之传说
+// 结局数：6
+// ===============================
+
+// 初始化属性
+set strength = 50    // 力量
+set wisdom = 50      // 智慧
+set courage = 50     // 勇气
+set morality = 50    // 道德
+set dragon_heart = 0 // 龙之心收集
+
+// 游戏开始
+START:
+say 龙之传说 1.0 gold
+wait 1500
+
+// 第一章：英雄诞生
+CHAPTER_1:
+say 第一章：命运的召唤 0.8 yellow
+
+choose 3 TRAIN:刻苦训练 STUDY:研究古籍 EXPLORE:探索世界
+
+TRAIN:
+set strength += 20
+say 力量提升至 ${strength} 0.5 red
+jump CHAPTER_2
+
+STUDY:
+set wisdom += 20
+say 智慧提升至 ${wisdom} 0.5 blue
+jump CHAPTER_2
+
+EXPLORE:
+set courage += 20
+say 勇气提升至 ${courage} 0.5 green
+jump CHAPTER_2
+
+// 第二章：龙之试炼
+CHAPTER_2:
+say 第二章：龙之试炼 0.8 yellow
+
+choose 2 FIGHT_DRAGON:挑战巨龙 HELP_DRAGON:帮助巨龙
+
+FIGHT_DRAGON:
+if strength >= 60 FIGHT_SUCCESS
+say 你的力量不足，被巨龙击败... 0.5 red
+set morality -= 10
+jump CHAPTER_3
+
+FIGHT_SUCCESS:
+say 你击败了巨龙！ 0.8 gold
+set dragon_heart += 1
+set courage += 20
+jump CHAPTER_3
+
+HELP_DRAGON:
+say 你选择帮助受伤的巨龙... 0.5 blue
+set morality += 20
+set wisdom += 10
+jump CHAPTER_3
+
+// 第三章：最终抉择
+CHAPTER_3:
+say 第三章：最终抉择 0.8 yellow
+say 当前属性： 0.5 white
+say 力量:${strength} 智慧:${wisdom} 勇气:${courage} 道德:${morality} 0.5 aqua
+
+if dragon_heart > 0 HAS_DRAGON_HEART
+
+choose 2 SAVE_WORLD:拯救世界 RULE_WORLD:统治世界
+
+SAVE_WORLD:
+if morality >= 70 TRUE_HERO
+if courage >= 70 BRAVE_HERO
+endname 普通英雄
+say 你成为了英雄，但传说很快被遗忘... 0.5 white
+end
+
+RULE_WORLD:
+if strength >= 70 TYRANT
+if wisdom >= 70 SCHEMER
+endname 野心家
+say 你的野心未能实现... 0.5 gray
+end
+
+HAS_DRAGON_HEART:
+choose 3 SAVE_WORLD:拯救世界  RULE_WORLD:统治世界 ASCEND:成为龙神
+
+ASCEND:
+endname 龙神结局
+say 你融合龙之心，成为了新的龙神！ 1.0 rainbow
+end
+
+TRUE_HERO:
+endname 真英雄结局
+say 你的美德将被永远传颂！ 1.0 gold
+end
+
+BRAVE_HERO:
+endname 勇者结局
+say 你的勇气激励了无数后人！ 0.8 orange
+end
+
+TYRANT:
+endname 暴君结局
+say 你以铁腕统治了世界... 0.8 crimson
+end
+
+SCHEMER:
+endname 智者结局
+say 你以智慧掌控了一切... 0.8 purple
+end
+
+// 隐藏结局条件
+HIDDEN_CONDITIONS:
+if strength >= 80 && wisdom >= 80 && courage >= 80 && morality >= 80 PERFECT_ENDING
+jump GAME_END
+
+PERFECT_ENDING:
+endname 完美结局
+say 你达成了所有完美条件！ 1.0 diamond
+say 力量:${strength} 智慧:${wisdom} 勇气:${courage} 道德:${morality} 0.5 white
+end
+
+GAME_END:
+say 游戏结束 0.5 white
+end

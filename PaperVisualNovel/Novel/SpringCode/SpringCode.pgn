@@ -1,0 +1,650 @@
+// ===============================
+// 游戏：青春代码
+// 总结局数：8
+// ===============================
+
+START:
+say 九月，新的学期开始了 1.0 white
+say 我，林晓风，一名普通的计算机系学生 0.8 white
+say 今天是我大学生活的第二年 0.8 white
+
+say 计算机教学楼前的公告栏围满了人 0.8 white
+
+choose 3 CHECK:查看公告栏 AVOID:直接绕过去 HELP:帮助旁边的女生
+
+CHECK:
+say 公告栏上贴满了社团招新的海报 0.8 blue
+say 其中一张编程社团的海报吸引了我的注意 0.8 blue
+set programming_club = 1
+jump FIRST_DAY
+
+AVOID:
+say 人太多了，我还是直接去教室吧 0.8 purple
+set programming_club = 0
+jump FIRST_DAY
+
+HELP:
+say 一个女生正在费力地抱着一摞书 0.8 yellow
+say 我上前帮她拿了一部分 0.8 yellow
+say 谢谢你，我是美术系的苏雨 0.8 yellow
+set art_girl = 1
+jump FIRST_DAY
+
+FIRST_DAY:
+say 教室里已经坐了不少同学 0.8 white
+say 我找了个靠窗的位置坐下 0.8 white
+
+say 上课铃响起时，一个熟悉的身影走了进来 0.8 white
+say 是我的同桌，计算机系的陈曦 0.8 yellow
+say 晓风，暑假过得怎么样？ 0.8 yellow
+
+choose 2 TALK_SUMMER:聊暑假的事情 TALK_STUDY:聊学习计划
+
+TALK_SUMMER:
+say 我暑假做了个小项目... 0.8 blue
+say 真的吗？我暑假也在学新的编程语言 0.8 yellow
+set chenxi_favor += 10
+jump AFTER_CLASS
+
+TALK_STUDY:
+say 这学期的数据结构好像很难 0.8 blue
+say 我们可以一起学习 0.8 yellow
+set chenxi_favor += 5
+jump AFTER_CLASS
+
+AFTER_CLASS:
+say 下课后，班长李婷走了过来 0.8 white
+say 晓风，这学期的项目分组开始了 0.8 aqua
+say 你要不要考虑和我们一组？ 0.8 aqua
+
+choose 2 JOIN_TEAM:加入班长的队伍 THINK_ABOUT:考虑一下
+
+JOIN_TEAM:
+say 好啊，听说你的项目做得很好 0.8 blue
+set monitor_favor += 15
+set in_monitor_team = 1
+jump LIBRARY
+
+THINK_ABOUT:
+say 我再考虑一下，谢谢邀请 0.8 blue
+set monitor_favor += 5
+set in_monitor_team = 0
+jump LIBRARY
+
+LIBRARY:
+say 下午我来到图书馆 0.8 white
+say 打算借几本编程相关的书 0.8 white
+
+if art_girl == 1 LIBRARY_ART_GIRL
+choose 2 STUDY_ALONE:自己学习 LOOK_AROUND:四处看看
+
+LIBRARY_ART_GIRL:
+say 嗨，又见面了 0.8 yellow
+say 是苏雨，她正在画速写 0.8 yellow
+choose 2 TALK_ART:聊艺术 VIEW_SKETCH:看她的画
+
+TALK_ART:
+say 你画得真好 0.8 blue
+say 谢谢，我对编程也很感兴趣呢 0.8 yellow
+set suyu_favor += 10
+jump LIBRARY_END
+
+VIEW_SKETCH:
+say 能看看你的画吗？ 0.8 blue
+say 好啊，这是我画的校园风景 0.8 yellow
+set suyu_favor += 8
+jump LIBRARY_END
+
+STUDY_ALONE:
+say 我找到了需要的书 0.8 blue
+say 找了个安静的角落开始学习 0.8 blue
+jump LIBRARY_END
+
+LOOK_AROUND:
+say 图书馆里很安静 0.8 purple
+say 大家都在认真学习 0.8 purple
+jump LIBRARY_END
+
+LIBRARY_END:
+say 时间过得很快，转眼就到了傍晚 0.8 white
+say 第一天的大学生活就这样结束了 0.8 white
+
+say 接下来的一周... 0.8 white
+wait 1000
+
+jump WEEK_ONE
+
+WEEK_ONE:
+say 一周过去了，我开始适应新的课程安排 0.8 white
+say 周三下午是社团招新日 0.8 white
+
+if programming_club == 1 CLUB_DAY_PROGRAMMING
+choose 2 WALK_AROUND:逛逛各个社团 GO_HOME:直接回家
+
+CLUB_DAY_PROGRAMMING:
+say 我决定去看看编程社团 0.8 blue
+say 社团里已经有不少人在讨论项目 0.8 blue
+
+say 你好，我是社团负责人赵明 0.8 red
+say 欢迎对编程感兴趣的同学 0.8 red
+
+choose 2 JOIN_CLUB:加入编程社团 ASK_DETAILS:询问详情
+
+JOIN_CLUB:
+say 我要加入 0.8 blue
+say 太好了！我们正在开发一个校园APP 0.8 red
+set programming_club_member = 1
+set zhao_favor += 10
+jump CLUB_MEETING
+
+ASK_DETAILS:
+say 社团平时都做什么？ 0.8 blue
+say 我们每周有技术分享，还会参加编程比赛 0.8 red
+set programming_club_member = 0
+jump CLUB_MEETING
+
+CLUB_MEETING:
+say 第一次社团活动开始了 0.8 white
+
+if in_monitor_team == 1 TEAM_MEETING
+jump WEEKEND_CHOICE
+
+TEAM_MEETING:
+say 项目小组也要开会讨论分工 0.8 white
+say 李婷作为组长安排了每个人的任务 0.8 aqua
+
+say 晓风，你负责后端开发可以吗？ 0.8 aqua
+
+choose 2 ACCEPT:接受任务 SUGGEST:提出建议
+
+ACCEPT:
+say 没问题，这部分我比较熟悉 0.8 blue
+set monitor_favor += 10
+set team_progress += 20
+jump WEEKEND_CHOICE
+
+SUGGEST:
+say 我觉得可以用新技术来做... 0.8 blue
+say 好主意，那就按你说的试试 0.8 aqua
+set monitor_favor += 5
+set team_progress += 15
+jump WEEKEND_CHOICE
+
+WEEKEND_CHOICE:
+say 周末到了，你打算怎么安排？ 0.8 white
+
+if suyu_favor >= 5 WEEKEND_SUYU_OPTION
+choose 3 STUDY:学习编程 WORK_PROJECT:做项目 HANG_OUT:出去逛逛
+
+WEEKEND_SUYU_OPTION:
+choose 4 STUDY:学习编程 WORK_PROJECT:做项目 HANG_OUT:出去逛逛 MEET_SUYU:约苏雨
+
+MEET_SUYU:
+say 我给苏雨发了消息 0.8 yellow
+say 她邀请我去看美术系的展览 0.8 yellow
+set suyu_favor += 15
+jump WEEKEND_EVENT
+
+STUDY:
+say 在宿舍学习新的算法 0.8 blue
+set skill_programming += 10
+jump WEEKEND_EVENT
+
+WORK_PROJECT:
+if in_monitor_team == 1 PROJECT_WORK
+say 自己做了个小项目练手 0.8 blue
+set skill_programming += 8
+jump WEEKEND_EVENT
+
+PROJECT_WORK:
+say 和团队一起推进项目 0.8 aqua
+set team_progress += 25
+set monitor_favor += 8
+jump WEEKEND_EVENT
+
+HANG_OUT:
+say 在校园里散步放松 0.8 purple
+set stress -= 10
+jump WEEKEND_EVENT
+
+WEEKEND_EVENT:
+say 周末结束，新的一周开始了 0.8 white
+wait 800
+
+say 一个月的校园生活过去了... 0.8 white
+wait 800
+
+jump MIDTERM_PERIOD
+
+MIDTERM_PERIOD:
+say 期中考试临近，大家都开始紧张复习 0.8 white
+say 陈曦问我复习得怎么样 0.8 yellow
+
+choose 2 STUDY_TOGETHER:一起复习 CONFIDENT:很有信心
+
+STUDY_TOGETHER:
+say 我们约在图书馆一起复习 0.8 blue
+say 互相讲解不懂的知识点 0.8 yellow
+set chenxi_favor += 12
+set skill_programming += 5
+jump MIDTERM_EXAM
+
+CONFIDENT:
+say 我已经复习得差不多了 0.8 blue
+say 真厉害，那考试加油 0.8 yellow
+set chenxi_favor += 3
+jump MIDTERM_EXAM
+
+MIDTERM_EXAM:
+say 期中考试结束了 0.8 white
+say 成绩公布的那天... 0.8 white
+
+if skill_programming >= 20 EXAM_GOOD
+if skill_programming >= 10 EXAM_MIDDLE
+say 编程课成绩不太理想 0.8 red
+set stress += 15
+jump AFTER_EXAM
+
+EXAM_MIDDLE:
+say 编程课成绩中等 0.8 white
+set stress += 5
+jump AFTER_EXAM
+
+EXAM_GOOD:
+say 编程课成绩优秀！ 0.8 green
+set stress -= 10
+jump AFTER_EXAM
+
+AFTER_EXAM:
+say 考完试的周末，手机收到几条消息 0.8 white
+
+if chenxi_favor >= 20 CHENXI_MESSAGE
+if monitor_favor >= 20 MONITOR_MESSAGE
+if suyu_favor >= 20 SUYU_MESSAGE
+jump NO_MESSAGE
+
+CHENXI_MESSAGE:
+say 陈曦：考完了要不要放松一下？ 0.8 yellow
+choose 2 MEET_CHENXI:同意见面 DECLINE_CHENXI:婉拒
+
+MEET_CHENXI:
+say 我们去了学校附近的咖啡馆 0.8 blue
+say 聊了很多关于未来和梦想的话题 0.8 yellow
+set chenxi_favor += 20
+jump AFTER_MESSAGES
+
+DECLINE_CHENXI:
+say 抱歉，我有点累了 0.8 blue
+say 好吧，下次再约 0.8 yellow
+set chenxi_favor -= 5
+jump AFTER_MESSAGES
+
+MONITOR_MESSAGE:
+say 李婷：项目进展顺利，谢谢你 0.8 aqua
+choose 2 TALK_PROJECT:讨论项目 THANKS_ONLY:简单回应
+
+TALK_PROJECT:
+say 我们讨论了项目的后续计划 0.8 blue
+say 发现彼此对技术的理解很相似 0.8 aqua
+set monitor_favor += 15
+jump AFTER_MESSAGES
+
+THANKS_ONLY:
+say 不客气，应该的 0.8 blue
+set monitor_favor += 3
+jump AFTER_MESSAGES
+
+SUYU_MESSAGE:
+say 苏雨：展览要结束了，今天最后一天 0.8 purple
+choose 2 GO_EXHIBITION:去看展览 BUSY_TODAY:今天没空
+
+GO_EXHIBITION:
+say 美术系的展览很精彩 0.8 blue
+say 苏雨亲自讲解每幅作品的创作理念 0.8 purple
+set suyu_favor += 18
+jump AFTER_MESSAGES
+
+BUSY_TODAY:
+say 抱歉，今天有事去不了 0.8 blue
+say 好吧，真遗憾 0.8 purple
+set suyu_favor -= 5
+jump AFTER_MESSAGES
+
+NO_MESSAGE:
+say 手机安静地躺着 0.8 gray
+say 或许应该主动联系别人？ 0.8 gray
+jump AFTER_MESSAGES
+
+AFTER_MESSAGES:
+say 时间继续流逝... 0.8 white
+say 期中之后，课程变得更加深入 0.8 white
+
+if programming_club_member == 1 CLUB_PROJECT
+jump PROGRAMMING_CONTEST
+
+CLUB_PROJECT:
+say 编程社团的项目进入了关键阶段 0.8 red
+say 赵明分配了更重要的任务给我 0.8 red
+
+choose 2 LEAD_TASK:承担重要任务 ASSIST:协助他人
+
+LEAD_TASK:
+say 我负责项目核心模块的开发 0.8 blue
+set zhao_favor += 15
+set skill_programming += 10
+jump PROGRAMMING_CONTEST
+
+ASSIST:
+say 我选择协助有经验的学长 0.8 blue
+set zhao_favor += 5
+set skill_programming += 5
+jump PROGRAMMING_CONTEST
+
+PROGRAMMING_CONTEST:
+say 学校宣布举办编程竞赛 0.8 white
+say 获奖者有机会参加全国比赛 0.8 white
+
+if skill_programming >= 30 CONFIDENT_CONTEST
+choose 2 JOIN_CONTEST:参加比赛 FOCUS_STUDY:专注学习
+
+CONFIDENT_CONTEST:
+say 以我的水平应该可以试试 0.8 green
+choose 2 JOIN_ALONE:个人参赛 JOIN_TEAM:组队参赛
+
+JOIN_ALONE:
+say 我决定个人参赛 0.8 blue
+set contest_type = 1
+jump PREPARE_CONTEST
+
+JOIN_TEAM:
+say 我打算找人组队 0.8 blue
+if chenxi_favor >= 25 ASK_CHENXI
+if monitor_favor >= 25 ASK_MONITOR
+say 但没找到合适的队友 0.8 gray
+set contest_type = 1
+jump PREPARE_CONTEST
+
+ASK_CHENXI:
+say 陈曦愿意和我组队 0.8 yellow
+set contest_type = 2
+set chenxi_favor += 10
+jump PREPARE_CONTEST
+
+ASK_MONITOR:
+say 李婷同意和我组队 0.8 aqua
+set contest_type = 3
+set monitor_favor += 10
+jump PREPARE_CONTEST
+
+FOCUS_STUDY:
+say 还是专心学习吧 0.8 blue
+set contest_type = 0
+jump PREPARE_CONTEST
+
+PREPARE_CONTEST:
+say 准备竞赛的日子里... 0.8 white
+
+if contest_type == 2 PREPARE_WITH_CHENXI
+if contest_type == 3 PREPARE_WITH_MONITOR
+if contest_type == 1 PREPARE_ALONE
+jump CONTEST_DAY
+
+PREPARE_WITH_CHENXI:
+say 每天和陈曦一起研究算法 0.8 yellow
+say 我们的配合越来越默契 0.8 yellow
+set chenxi_favor += 15
+set skill_programming += 8
+jump CONTEST_DAY
+
+PREPARE_WITH_MONITOR:
+say 和李婷分工合作 0.8 aqua
+say 她对项目的整体把握让我学到很多 0.8 aqua
+set monitor_favor += 15
+set skill_programming += 8
+jump CONTEST_DAY
+
+PREPARE_ALONE:
+say 独自准备比赛压力很大 0.8 blue
+say 但进步也很快 0.8 blue
+set skill_programming += 12
+jump CONTEST_DAY
+
+CONTEST_DAY:
+say 编程竞赛的日子到了 0.8 white
+say 赛场上气氛紧张 0.8 white
+
+if skill_programming >= 40 CONTEST_GOOD
+if skill_programming >= 25 CONTEST_MIDDLE
+say 题目很难，我没能完成 0.8 red
+set contest_result = 0
+jump AFTER_CONTEST
+
+CONTEST_MIDDLE:
+say 勉强完成了所有题目 0.8 white
+set contest_result = 1
+jump AFTER_CONTEST
+
+CONTEST_GOOD:
+say 我发挥得很好 0.8 green
+set contest_result = 2
+jump AFTER_CONTEST
+
+AFTER_CONTEST:
+say 竞赛结束了，结果要一周后公布 0.8 white
+say 这段时间的紧张备考告一段落 0.8 white
+
+jump FINAL_MONTH
+
+FINAL_MONTH:
+say 学期进入了最后一个月 0.8 white
+say 大家都在为期末考试做准备 0.8 white
+
+say 同时，一些关系也在悄然变化... 0.8 white
+
+if chenxi_favor >= 50 CHENXI_CLOSE
+if monitor_favor >= 50 MONITOR_CLOSE
+if suyu_favor >= 50 SUYU_CLOSE
+jump FINAL_REVIEW
+
+CHENXI_CLOSE:
+say 陈曦和我走得越来越近 0.8 yellow
+say 我们经常一起学习、一起吃饭 0.8 yellow
+say 周围的同学都以为我们在交往 0.8 yellow
+
+choose 2 CONFESS:向她表白 MAINTAIN:保持现状
+
+CONFESS:
+say 我鼓起勇气向她表白了 0.8 blue
+if chenxi_favor >= 60 CONFESS_SUCCESS
+say 陈曦说她还没准备好开始一段关系 0.8 yellow
+set chenxi_favor -= 10
+jump FINAL_REVIEW
+
+CONFESS_SUCCESS:
+say 陈曦微笑着答应了 0.8 green
+set relationship = 1
+set relationship_with = 陈曦
+jump FINAL_REVIEW
+
+MAINTAIN:
+say 我觉得现在这样也挺好 0.8 blue
+set chenxi_favor += 5
+jump FINAL_REVIEW
+
+MONITOR_CLOSE:
+say 李婷和我在项目合作中建立了深厚信任 0.8 aqua
+say 她开始向我倾诉一些烦恼和理想 0.8 aqua
+
+choose 2 SUPPORT_MONITOR:支持她的梦想 KEEP_DISTANCE:保持距离
+
+SUPPORT_MONITOR:
+say 我鼓励她追求自己的目标 0.8 blue
+set monitor_favor += 15
+if monitor_favor >= 70 MONITOR_CONFESS
+jump FINAL_REVIEW
+
+MONITOR_CONFESS:
+say 李婷说她很欣赏我 0.8 aqua
+say 想和我有更进一步的关系 0.8 aqua
+set relationship = 1
+set relationship_with = 李婷
+jump FINAL_REVIEW
+
+KEEP_DISTANCE:
+say 我觉得我们还是做同学比较好 0.8 blue
+set monitor_favor -= 10
+jump FINAL_REVIEW
+
+SUYU_CLOSE:
+say 苏雨经常找我聊艺术和技术的结合 0.8 purple
+say 她说我的思维方式给她很多灵感 0.8 purple
+
+choose 2 COLLABORATE:提议合作项目 FRIEND_ONLY:只做朋友
+
+COLLABORATE:
+say 我们决定做一个艺术科技结合的项目 0.8 blue
+set suyu_favor += 20
+if suyu_favor >= 70 SUYU_CONFESS
+jump FINAL_REVIEW
+
+SUYU_CONFESS:
+say 苏雨说她喜欢和我在一起的感觉 0.8 purple
+set relationship = 1
+set relationship_with = 苏雨
+jump FINAL_REVIEW
+
+FRIEND_ONLY:
+say 我觉得我们更适合做朋友 0.8 blue
+set suyu_favor -= 5
+jump FINAL_REVIEW
+
+FINAL_REVIEW:
+say 期末考试周终于到来 0.8 white
+say 整个校园都沉浸在复习的氛围中 0.8 white
+
+say 根据这个学期的努力程度... 0.8 white
+
+if skill_programming >= 50 FINAL_EXCELLENT
+if skill_programming >= 30 FINAL_GOOD
+say 期末考试勉强及格 0.8 white
+set final_score = 60
+jump WINTER_VACATION
+
+FINAL_GOOD:
+say 期末考试取得良好成绩 0.8 green
+set final_score = 80
+jump WINTER_VACATION
+
+FINAL_EXCELLENT:
+say 期末考试取得优秀成绩！ 0.8 gold
+set final_score = 95
+jump WINTER_VACATION
+
+WINTER_VACATION:
+say 寒假前的最后一天 0.8 white
+say 编程竞赛结果公布了 0.8 white
+
+if contest_result == 2 CONTEST_WIN
+if contest_result == 1 CONTEST_PARTICIPATE
+say 我没有参加比赛 0.8 gray
+jump END_GAME
+
+CONTEST_PARTICIPATE:
+say 我获得了参与奖 0.8 blue
+set achievement += 1
+jump END_GAME
+
+CONTEST_WIN:
+say 我获得了编程竞赛的一等奖！ 0.8 gold
+set achievement += 3
+jump END_GAME
+
+END_GAME:
+say 大一上学期的生活结束了 0.8 white
+say 回顾这几个月... 0.8 white
+
+say 我成长了许多 0.8 white
+say 也经历了很多 0.8 white
+
+// 结局判断
+if relationship == 1 RELATIONSHIP_ENDING
+if achievement >= 3 ACHIEVEMENT_ENDING
+if skill_programming >= 60 GROWTH_ENDING
+if final_score >= 90 STUDY_ENDING
+say 这是一个平凡但充实的学期 0.8 white
+endname 平凡生活
+jump END_NORMAL
+
+RELATIONSHIP_ENDING:
+if relationship_with == 陈曦 ENDING_CHENXI
+if relationship_with == 李婷 ENDING_MONITOR
+if relationship_with == 苏雨 ENDING_SUYU
+
+ENDING_CHENXI:
+say 我和陈曦开始了交往 0.8 yellow
+say 我们一起学习，一起进步 0.8 yellow
+say 在编程的世界里找到了共同的梦想 0.8 yellow
+endname 同行者
+end
+
+ENDING_MONITOR:
+say 我和李婷在一起了 0.8 aqua
+say 我们在技术上互相促进 0.8 aqua
+say 计划一起创业，开发改变世界的软件 0.8 aqua
+endname 创业伙伴
+end
+
+ENDING_SUYU:
+say 我和苏雨走到了一起 0.8 purple
+say 艺术与技术的碰撞产生了奇妙火花 0.8 purple
+say 我们计划做一个跨学科的项目 0.8 purple
+endname 跨界组合
+end
+
+ACHIEVEMENT_ENDING:
+say 我在编程竞赛中取得了优异成绩 0.8 gold
+say 被选入学校的精英培养计划 0.8 gold
+say 未来将有机会参加国际比赛 0.8 gold
+endname 明日之星
+end
+
+GROWTH_ENDING:
+say 我的编程技能大幅提升 0.8 blue
+say 接到了第一个外包项目 0.8 blue
+say 开始规划自己的职业道路 0.8 blue
+endname 技术达人
+end
+
+STUDY_ENDING:
+say 我取得了优异的学业成绩 0.8 green
+say 获得了奖学金 0.8 green
+say 为未来的深造打下了坚实基础 0.8 green
+endname 学霸之路
+end
+
+END_NORMAL:
+say 寒假开始了 0.8 white
+say 我收拾行李准备回家 0.8 white
+say 下学期再见，我的大学 0.8 white
+endname 新的开始
+end
+
+// 隐藏结局条件
+if chenxi_favor >= 80 && monitor_favor >= 80 HIDDEN_ENDING
+if skill_programming >= 80 && contest_result == 2 MASTER_ENDING
+end
+
+HIDDEN_ENDING:
+say 没想到，陈曦和李婷都对我有好感 0.8 rainbow
+say 我陷入了两难的境地 0.8 rainbow
+say 最终，我们决定专注于学业和梦想 0.8 rainbow
+say 让时间给出答案 0.8 rainbow
+endname 甜蜜烦恼
+end
+
+MASTER_ENDING:
+say 我的编程水平达到了新的高度 0.8 diamond
+say 被多家科技公司提前关注 0.8 diamond
+say 但我决定先完成学业，打好基础 0.8 diamond
+endname 未来大师
+end

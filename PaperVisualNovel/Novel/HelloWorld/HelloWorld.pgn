@@ -1,0 +1,110 @@
+// ========================================
+// HelloWorld.pgn
+// PaperVisualNovel 视觉小说引擎 - 教程示例
+// ========================================
+
+// 1. 基础文本输出
+say 按下Enter以继续；按下Esc以打开菜单 0.5 green
+say 欢迎来到PaperVisualNovel! 0.5 green
+say 这是一个视觉小说引擎的教程。 0.5 white
+say 让我们开始吧! 0.8 yellow
+
+// 2. 不同颜色的文本
+say 我可以显示不同颜色的文字! 0.3 white
+say 这是红色的文字 0.5 red
+say 这是绿色的文字 0.5 green
+say 这是黄色的文字 0.5 yellow
+say 这是青色的文字 0.5 aqua
+cls
+
+// 3. 选择分支系统 - 使用新版 choose 格式
+say 现在，让我们来试试选择分支。 0.5 white
+say 请做出你的选择： 0.5 yellow
+
+// 新版 choose 格式：choose [数量] [标签1:文本1] [标签2:文本2] [标签3:文本3]
+choose 3 CHOICE_COFFEE:喝咖啡 CHOICE_TEA:喝茶 CHOICE_WATER:喝水
+
+// 注意：现在需要通过标签跳转到对应分支
+CHOICE_COFFEE:
+say 你选择了喝咖啡！ 0.5 red
+say 咖啡因让你精神焕发！ 0.5 white
+wait 1000
+jump AFTER_CHOICE:  // 跳转到选择之后的公共部分
+
+CHOICE_TEA:
+say 你选择了喝茶！ 0.5 green
+say 茶香让你感到宁静。 0.5 white
+wait 1000
+jump AFTER_CHOICE:
+
+CHOICE_WATER:
+say 你选择了喝水！ 0.5 blue
+say 水是生命之源。 0.5 white
+wait 1000
+jump AFTER_CHOICE:
+
+AFTER_CHOICE:
+// 4. 变量系统
+say 现在让我们学习变量系统。 0.5 white
+
+// 设置一个变量
+set score = 100
+say 你的初始分数是100分。 0.5 white
+
+// 修改变量
+say 你答对了一个问题！ 0.5 green
+set score += 10
+say 现在你的分数是${score}分。 0.5 white
+
+say 你答错了另一个问题... 0.5 red
+set score -= 20
+say 现在你的分数是${score}分。 0.5 white
+
+// 5. 条件判断
+say 让我们检查一下你的分数等级： 0.5 white
+
+// 使用 if 语句检查分数
+if score >= 100 EXCELLENT:
+if score >= 80 GOOD:
+if score >= 60 PASS:
+jump FAIL:  // 否则跳转到FAIL标签
+
+EXCELLENT:
+say 优秀！你的分数超过100分 0.5 yellow
+jump END_TEST:
+
+GOOD:
+say 良好！你的分数在80-99分之间 0.5 green
+jump END_TEST:
+
+PASS:
+say 及格！你的分数在60-79分之间 0.5 aqua
+jump END_TEST:
+
+FAIL:
+say 不及格！你的分数低于60分 0.5 red
+jump END_TEST:
+
+END_TEST:
+say 跳转测试完成 0.5 white
+
+// 6. 显示外部文件
+say 现在让我们看看如何显示外部文件。 0.5 white
+say 我将尝试显示一张图片（如果存在的话）。 0.5 yellow
+
+// 注意：这里假设在Novel\HelloWorld\archive\目录下有一个tutorial.png文件
+// 如果文件不存在，会显示错误信息
+show tutorial.png
+
+
+
+
+// 8. 结束语
+say 教程到此结束！ 0.8 yellow
+
+
+say 感谢使用PaperVisualNovel! 1.0 green
+
+endname HelloWorld！
+// 游戏结束
+end
