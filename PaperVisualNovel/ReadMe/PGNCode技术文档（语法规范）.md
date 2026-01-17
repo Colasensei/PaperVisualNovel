@@ -1,373 +1,373 @@
-# PGN�ű������﷨�ĵ�
+# PGN脚本语言语法文档
 
-## ����
+## 概述
 
-**PGN** ��һ��Ϊ�Ӿ�С˵��Ϸ��ƵĽű����ԣ��﷨��ֱ�ۣ�֧�ַ�֧���顢���������Ͷ�ý����ơ�
+**PGN** 是一种为视觉小说游戏设计的脚本语言，语法简单直观，支持分支剧情、变量操作和多媒体控制。
 
-## �����﷨����
+## 基础语法规则
 
-### 1. �ļ��ṹ
+### 1. 文件结构
 
 ```
-*.pgn �ļ�
-������ ע�ͣ���#��//��ͷ��
-������ ��ǩ���壨��:��β��
-������ �������
-������ ���У������ԣ�
+*.pgn 文件
+├── 注释（以#或//开头）
+├── 标签定义（以:结尾）
+├── 命令语句
+└── 空行（被忽略）
 ```
 
-### 2. ע��
+### 2. 注释
 
 ```pgn
-# ����ע��
-// Ҳ�ǵ���ע��
+# 单行注释
+// 也是单行注释
 ```
 
-### 3. ��Сд����
+### 3. 大小写敏感
 
-- ����ؼ��ֲ����ִ�Сд��`say` = `SAY` 
-- ���������ִ�Сд��`score` �� `Score`
-- ��ǩ�����ִ�Сд��`start:` �� `Start:`
+- 命令关键字不区分大小写：`say` = `SAY` 
+- 变量名区分大小写：`score` ≠ `Score`
+- 标签名区分大小写：`start:` ≠ `Start:`
 
-### 4.�ո�淶����Ҫ��
+### 4.空格规范（重要）
 
-* **��������Ͳ���֮������ÿո�ָ�**
-* **��ǩ��������ռһ�У�����ð�Ž�β**
-* **��ʹ������**��Tab��ո�
+* **所有命令和参数之间必须用空格分隔**
+* **标签定义必须独占一行，且以冒号结尾**
+* **可使用缩进**（Tab或空格）
 
-## ����ο�
+## 命令参考
 
-### �ı���ʾ����
+### 文本显示命令
 
-#### `say` - ��ʾ�Ի��ı�
+#### `say` - 显示对话文本
 
 ```pgn
-# �����﷨
-say "�ı�����" [��ʾʱ��] [��ɫ]
+# 基本语法
+say "文本内容" [显示时间] [颜色]
 
-# ʾ��
-say "��ã����磡"               # Ĭ�ϰ�ɫ��0.5��/�ַ�
-say "���������" 0.2 red         # ��ɫ��������ʾ
-say "������Ϣ..." 1.0 purple     # ��ɫ��������ʾ
+# 示例
+say "你好，世界！"               # 默认白色，0.5秒/字符
+say "紧急情况！" 0.2 red         # 红色，快速显示
+say "神秘信息..." 1.0 purple     # 紫色，慢速显示
 
-# ������ֵ
+# 变量插值
 set score = 100
-say "${score}��"             
+say "${score}分"             
 ```
 
-**����˵����**
+**参数说明：**
 
-- `�ı�����`��Ҫ��ʾ���ı���֧�ֱ�����ֵ `${������}`
-- `��ʾʱ��`����ѡ��ÿ���ַ���ʾʱ�䣨�룩��Ĭ��0.5
-- `��ɫ`����ѡ���ı���ɫ������ɫ������Ĭ��white
+- `文本内容`：要显示的文本，支持变量插值 `${变量名}`
+- `显示时间`：可选，每个字符显示时间（秒），默认0.5
+- `颜色`：可选，文本颜色（见颜色表），默认white
 
-#### `sayvar` - ��ʾ����ֵ
+#### `sayvar` - 显示变量值
 
-��ʷ�������������ʹ�ã����ʵ��Ϊsay�Ĳ�ֵ�·��
+历史遗留命令，不建议使用，最佳实践为say的插值新风格
 
 ```pgn
-sayvar ������ ��ʾʱ�� ��ɫ
+sayvar 变量名 显示时间 颜色
 
-# ʾ��
+# 示例
 set score = 100
-sayvar score 0.3 yellow          # ��ʾ��100
+sayvar score 0.3 yellow          # 显示：100
 ```
 
-### ��Ϸ���̿���
+### 游戏流程控制
 
-#### `wait` - �ȴ�
+#### `wait` - 等待
 
-����ʹ�ã�����Ӱ������
+谨慎使用，可能影响体验
 
 ```pgn
-wait ������
+wait 毫秒数
 
-# ʾ��
-wait 1000     # �ȴ�1��
-wait 500      # �ȴ�0.5��
+# 示例
+wait 1000     # 等待1秒
+wait 500      # 等待0.5秒
 ```
 
-#### `end` - ������Ϸ
+#### `end` - 结束游戏
 
-�˴����ѣ�˳���д
+此处提醒，顺序编写
 
 ```pgn
-end           # ������Ϸ���������˵�
+end           # 结束游戏，返回主菜单
 ```
 
-#### `endname` - ��ǽ��
+#### `endname` - 标记结局
 
-������������Ϸ������Ҫend����
+不代表结束游戏，仍需要end命令
 
 ```pgn
-endname "�������"
+endname "结局名称"
 
-# ʾ��
-endname "���ý��"      # ���"���ý��"
-endname "�����ճ�"      # ���"�����ճ�"
+# 示例
+endname "美好结局"      # 达成"美好结局"
+endname "悲剧收场"      # 达成"悲剧收场"
 ```
 
-### ��������
+### 变量操作
 
-#### `set` - ���ñ���
+#### `set` - 设置变量
 
-��ֻ֧��int
+暂只支持int
 
 ```pgn
-set ������ ������ ֵ
+set 变量名 操作符 值
 
-# ʾ��
-set score = 100        # ��ֵ
-set score += 10        # �ӷ�
-set score -= 5         # ����
-set score *= 2         # �˷�
-set score /= 4         # ����
+# 示例
+set score = 100        # 赋值
+set score += 10        # 加法
+set score -= 5         # 减法
+set score *= 2         # 乘法
+set score /= 4         # 除法
 ```
 
-**֧�ֵĲ�������**
+**支持的操作符：**
 
-- `=`����ֵ
-- `+=`���ӷ���ֵ
-- `-=`��������ֵ
-- `*=`���˷���ֵ
-- `/=`��������ֵ
+- `=`：赋值
+- `+=`：加法赋值
+- `-=`：减法赋值
+- `*=`：乘法赋值
+- `/=`：除法赋值
 
-#### `random` - ���������
+#### `random` - 生成随机数
 
-���ɼ���ֵ����������ʹ��
+生成即赋值，仅供单次使用
 
 ```pgn
-random ������ ��Сֵ ���ֵ
+random 变量名 最小值 最大值
 
-# ʾ��
-random dice 1 6        # ����1-6�������
-random luck 0 100      # ����0-100�������
+# 示例
+random dice 1 6        # 生成1-6的随机数
+random luck 0 100      # 生成0-100的随机数
 ```
 
-### ���̿���
+### 流程控制
 
-#### `jump` - ��������ת
+#### `jump` - 无条件跳转
 
-֧�ֱ�ǩ�����֣������кţ�
+支持标签与数字（代表行号）
 
 ```pgn
-jump Ŀ��
+jump 目标
 
-# ʾ��
-jump chapter2          # ��ת����ǩ chapter2
-jump 50                # ��ת����50��
+# 示例
+jump chapter2          # 跳转到标签 chapter2
+jump 50                # 跳转到第50行
 ```
 
-#### `choose` - ��֧ѡ��
+#### `choose` - 分支选择
 
-��ע�⣬д��һ�����ڣ�
+请注意，写在一行以内！
 
 ```pgn
-choose ѡ������ ��ǩ1:��ʾ�ı�1 ��ǩ2:��ʾ�ı�2
+choose 选项数量 标签1:显示文本1 标签2:显示文本2
 ...
 
-# ʾ��
-choose 2 go_library:ȥͼ��� go_park:ȥ��԰
+# 示例
+choose 2 go_library:去图书馆 go_park:去公园
 
-# ����ʾ����û��һ���ڣ�
-choose 2 go_library:ȥͼ���
-???????? go_park:ȥ��԰
+# 错误示例（没在一行内）
+choose 2 go_library:去图书馆
+???????? go_park:去公园
 ```
 
-**ѡ����棺**
+**选择界面：**
 
 ```
-��ѡ��
-1. ȥͼ���
-2. ȥ��԰
-����������ѡ�� (1-2):
+请选择：
+1. 去图书馆
+2. 去公园
+请输入数字选择 (1-2):
 ```
 
-#### `if` - ������ת
+#### `if` - 条件跳转
 
 ```pgn
-if ��������ʽ Ŀ��
+if 条件表达式 目标
 
-# ʾ��
+# 示例
 if score > 80 good_end
 if score <= 80 bad_end
 if flag == 1 && money >= 100 secret_shop
 ```
 
-### ��ý�����
+### 多媒体控制
 
-#### `show` - ��ʾ�ļ�
+#### `show` - 显示文件
 
 ```pgn
-show �ļ���
+show 文件名
 
-# ʾ��
-show background.jpg    # ��ʾͼƬ
-show letter.txt        # ��ʾ�ı��ļ�
+# 示例
+show background.jpg    # 显示图片
+show letter.txt        # 显示文本文件
 ```
 
-**֧�ֵ��ļ����ͣ�**
+**支持的文件类型：**
 
-- ͼƬ��.jpg, .jpeg, .png, .bmp, .gif
-- �ı���.txt, .md, .log
-- �ĵ���.pdf, .doc, .docx
-- ��Ƶ��.mp3, .wav
-- ��Ƶ��.mp4, .avi
+- 图片：.jpg, .jpeg, .png, .bmp, .gif
+- 文本：.txt, .md, .log
+- 文档：.pdf, .doc, .docx
+- 音频：.mp3, .wav
+- 视频：.mp4, .avi
 
-## ��ɫ��
+## 颜色表
 
-| ��ɫ  | Ӣ��     | ʾ��                    |
+| 颜色  | 英文     | 示例                    |
 | --- | ------ | --------------------- |
-| ��ɫ  | black  | `say "�ı�" 0.5 black`  |
-| ��ɫ  | blue   | `say "�ı�" 0.5 blue`   |
-| ��ɫ  | green  | `say "�ı�" 0.5 green`  |
-| ��ɫ  | aqua   | `say "�ı�" 0.5 aqua`   |
-| ��ɫ  | red    | `say "�ı�" 0.5 red`    |
-| ��ɫ  | purple | `say "�ı�" 0.5 purple` |
-| ��ɫ  | yellow | `say "�ı�" 0.5 yellow` |
-| ��ɫ  | white  | `say "�ı�" 0.5 white`  |
-| ��ɫ  | gray   | `say "�ı�" 0.5 gray`   |
+| 黑色  | black  | `say "文本" 0.5 black`  |
+| 蓝色  | blue   | `say "文本" 0.5 blue`   |
+| 绿色  | green  | `say "文本" 0.5 green`  |
+| 青色  | aqua   | `say "文本" 0.5 aqua`   |
+| 红色  | red    | `say "文本" 0.5 red`    |
+| 紫色  | purple | `say "文本" 0.5 purple` |
+| 黄色  | yellow | `say "文本" 0.5 yellow` |
+| 白色  | white  | `say "文本" 0.5 white`  |
+| 灰色  | gray   | `say "文本" 0.5 gray`   |
 
-## ��ǩϵͳ
+## 标签系统
 
-### �����ǩ
+### 定义标签
 
 ```pgn
-��ǩ��:
-    ����1
-    ����2
+标签名:
+    命令1
+    命令2
     ...
 
-# ʾ��
+# 示例
 start:
-    say "��Ϸ��ʼ..."
+    say "游戏开始..."
     jump intro
 
 intro:
-    say "�������Ӳ���..."
+    say "这是引子部分..."
 ```
 
-### ʹ�ñ�ǩ
+### 使用标签
 
 ```pgn
-jump start      # ��ת��start��ǩ
-if x > 5 start  # ������ת��start��ǩ
+jump start      # 跳转到start标签
+if x > 5 start  # 条件跳转到start标签
 ```
 
-## ��������ʽ�﷨
+## 条件表达式语法
 
-### �Ƚ������
+### 比较运算符
 
 ```pgn
-# ��ֵ�Ƚ�
-a == b      # ����
-a != b      # ������
-a < b       # С��
-a > b       # ����
-a <= b      # С�ڵ���
-a >= b      # ���ڵ���
+# 数值比较
+a == b      # 等于
+a != b      # 不等于
+a < b       # 小于
+a > b       # 大于
+a <= b      # 小于等于
+a >= b      # 大于等于
 
-# �߼�����
-a && b      # �߼��루AND��
-a || b      # �߼���OR��
+# 逻辑运算
+a && b      # 逻辑与（AND）
+a || b      # 逻辑或（OR）
 
-# ʾ��
+# 示例
 score >= 60 && score < 80
 flag == 1 || money > 100
 ```
 
-### �����ͳ���
+### 变量和常量
 
 ```pgn
-# ����
+# 变量
 player_score
 game_flag
 item_count
 
-# ����
-100         # ����
-0           # ��
--5          # ����
+# 常量
+100         # 整数
+0           # 零
+-5          # 负数
 ```
 
-### ���ӱ���ʽ
+### 复杂表达式
 
 ```pgn
-# ֧������
+# 支持括号
 (score > 80 && flag == 1) || secret_unlocked
 
-# �������
+# 组合条件
 if (hp <= 0) game_over
 if (key_found && door_unlocked) enter_room
 ```
 
-## �ļ�·������
+## 文件路径处理
 
-### ���·��
-
-```pgn
-# �������ϷĿ¼��archive�ļ���
-show image.jpg          # ʵ��·������ϷĿ¼/archive/image.jpg
-```
-
-### ����Ŀ¼
-
-```
-��ϷĿ¼/
-������ ��Ϸ��.pgn          # �ű��ļ�
-������ archive/           # ��Դ�ļ���
-������ saves/            # �浵�ļ��У��Զ�������
-```
-
-## ת���ַ�
-
-### �ַ����е�ת��
+### 相对路径
 
 ```pgn
-say "��˵��\"��ã�\""        # �������˵��"��ã�"
-say "��һ��\n�ڶ���"          # �������һ�У����У��ڶ���
-say "�Ʊ���\t�ı�"            # ������Ʊ���    �ı�
-say "��б�ܣ�\\"              # �������б�ܣ�\
+# 相对于游戏目录的archive文件夹
+show image.jpg          # 实际路径：游戏目录/archive/image.jpg
 ```
 
-**֧�ֵ�ת�����У�**
-
-- `\"`��˫����
-- `\\`����б��
-- `\n`������
-- `\t`���Ʊ���
-- `\r`���س�
-
-## �ű�ִ������
-
-### ��������
+### 特殊目录
 
 ```
-��ʼ
-������ ��˳��ִ������
-������ ����ѡ����ͣ�ȴ��û�����
-������ ������ת����ת��ָ��λ��
-������ ����������ִֹͣ��
-������ �ű��������������˵�
+游戏目录/
+├── 游戏名.pgn          # 脚本文件
+├── archive/           # 资源文件夹
+└── saves/            # 存档文件夹（自动创建）
 ```
 
-### ִ��ʾ��
+## 转义字符
+
+### 字符串中的转义
 
 ```pgn
-# ʾ���ű�
+say "他说：\"你好！\""        # 输出：他说："你好！"
+say "第一行\n第二行"          # 输出：第一行（换行）第二行
+say "制表符\t文本"            # 输出：制表符    文本
+say "反斜杠：\\"              # 输出：反斜杠：\
+```
+
+**支持的转义序列：**
+
+- `\"`：双引号
+- `\\`：反斜杠
+- `\n`：换行
+- `\t`：制表符
+- `\r`：回车
+
+## 脚本执行流程
+
+### 基本流程
+
+```
+开始
+├── 按顺序执行命令
+├── 遇到选择：暂停等待用户输入
+├── 遇到跳转：跳转到指定位置
+├── 遇到结束：停止执行
+└── 脚本结束：返回主菜单
+```
+
+### 执行示例
+
+```pgn
+# 示例脚本
 start:
-    say "��ӭ����ð����Ϸ��" 0.5 blue
+    say "欢迎来到冒险游戏！" 0.5 blue
     set score = 0
 
-    choose 2 left:��ǰ�� right:�����
+    choose 2 left:向前走 right:向后走
 
 left:
-    say "��ѡ������ǰ..." 0.3
+    say "你选择了向前..." 0.3
     set score += 10
     jump check_score
 
 right:
-    say "��ѡ�������..." 0.3
+    say "你选择了向后..." 0.3
     set score += 5
     jump check_score
 
@@ -376,189 +376,189 @@ check_score:
     if score < 10 bad_end
 
 good_end:
-    say "��ϲ��������֣�" 0.5 green
-    endname "�������"
+    say "恭喜！完美结局！" 0.5 green
+    endname "完美结局"
     end
 
 bad_end:
-    say "��Ϸ����..." 0.5 red
-    endname "��ͨ���"
+    say "游戏结束..." 0.5 red
+    endname "普通结局"
     end
 ```
 
-## �﷨���ƺ�ע������
+## 语法限制和注意事项
 
-### 1. һ��һ������
+### 1. 一行一条命令
 
 ```pgn
-# ��ȷ
-say "���"
+# 正确
+say "你好"
 wait 1000
 
-# ����
-say "���" wait 1000
+# 错误
+say "你好" wait 1000
 ```
 
-### 2. ������������
+### 2. 变量命名规则
 
-- ֻ�ܰ�����ĸ�����֡��»���
-- ���������ֿ�ͷ
-- ���ִ�Сд
-- ʾ����`score`, `player_name`, `item_1`
+- 只能包含字母、数字、下划线
+- 不能以数字开头
+- 区分大小写
+- 示例：`score`, `player_name`, `item_1`
 
-### 3. �ַ�������
+### 3. 字符串引号
 
 ```pgn
-# ��ȷ - ʹ��˫����
-say "�ı�����"
+# 正确 - 使用双引号
+say "文本内容"
 
-# ���� - �����Ų�֧��
-say '�ı�����'
+# 错误 - 单引号不支持
+say '文本内容'
 ```
 
-### 4. ��ֵ��Χ
+### 4. 数值范围
 
-- ������-2,147,483,648 �� 2,147,483,647
-- ��֧��С���Ϳ�ѧ������
+- 整数：-2,147,483,648 到 2,147,483,647
+- 不支持小数和科学计数法
 
-## ������
+## 错误处理
 
-### ��������
+### 常见错误
 
-1. **�﷨����**
+1. **语法错误**
    
    ```pgn
-   say �ı�����      # ȱ�����ţ�����Ϊ�����ݣ�Ҳ��ʹ�ã������﷨����
-   set x == 5       # ����Ӧ���� = ������ ==
+   say 文本内容      # 缺少引号，但因为向后兼容，也可使用，并非语法错误
+   set x == 5       # 错误：应该用 = 而不是 ==
    ```
 
-2. **����ʱ����**
+2. **运行时错误**
    
    ```pgn
-   set x = y        # ���󣺲�֧�����ӱ���
-   jump unknown     # ���󣺱�ǩ������
-   show missing.jpg # �����ļ�������
+   set x = y        # 错误：不支持增加变量
+   jump unknown     # 错误：标签不存在
+   show missing.jpg # 错误：文件不存在
    ```
 
-3. **�߼�����**
+3. **逻辑错误**
    
    ```pgn
-   # ����ѭ��
+   # 无限循环
    loop:
        jump loop
    ```
 
-### ������Ϣ��ʽ
+### 错误消息格式
 
 ```
-����δ֪��PGN���� - ������
-������תĿ����Ч - Ŀ����
-����say�����е��ַ���ȱ�ٽ�������
+错误：未知的PGN命令 - 命令名
+错误：跳转目标无效 - 目标名
+错误：say命令中的字符串缺少结束引号
 ```
 
-## ���ʵ��
+## 最佳实践
 
-### 1. ������֯
+### 1. 代码组织
 
 ```pgn
-# ʹ�ÿ��зָ��߼���
+# 使用空行分隔逻辑块
 start:
-    # ��ʼ��
+    # 初始化
     set score = 0
     set flag = 0
 
-    # ���鿪ʼ
-    say "���¿�ʼ..."
+    # 剧情开始
+    say "故事开始..."
 
-    # ��һ��ѡ��
-    choose 2 option1:ѡ��1 option2:ѡ��2
+    # 第一个选择
+    choose 2 option1:选择1 option2:选择2
 ```
 
-### 2. ע�͹淶
+### 2. 注释规范
 
 ```pgn
-# �½ڣ���һ��
-# ���ߣ�С��
-# ���ڣ�2024-01-01
+# 章节：第一章
+# 作者：小明
+# 日期：2024-01-01
 
 chapter1:
-    # ����������
-    say "�����ﾲ���ĵ�..."
+    # 场景：教室
+    say "教室里静悄悄的..."
 
-    # ѡ��ȥ��
-    choose 2 stay:���ڽ��� leave:�뿪����
+    # 选择：去向
+    choose 2 stay:留在教室 leave:离开教室
 ```
 
-### 3. ��ǩ����
+### 3. 标签命名
 
 ```pgn
-# ʹ�������������
-introduction:      # ����
-battle_start:      # ս����ʼ
-good_ending:       # �ý��
-secret_room:       # ���ܷ���
+# 使用有意义的名称
+introduction:      # 引子
+battle_start:      # 战斗开始
+good_ending:       # 好结局
+secret_room:       # 秘密房间
 ```
 
-### 4. ��������
+### 4. 变量管理
 
 ```pgn
-# ʹ��ǰ׺���ֱ�������
-# str_ �ַ���������δ��֧�֣�
-# int_ ��������
-# flag_ ��־����
+# 使用前缀区分变量类型
+# str_ 字符串变量（未来支持）
+# int_ 整数变量
+# flag_ 标志变量
 
 set int_score = 0
 set flag_key_found = 1
 set flag_door_unlocked = 0
 ```
 
-## ���Լ���
+## 调试技巧
 
-### 1. ʹ�õ����նˣ�F12��
+### 1. 使用调试终端（F12）
 
 ```
-Debug> vars        # �鿴���б���
-Debug> info        # �鿴��Ϸ��Ϣ
-Debug> goto �к�   # ��ת��ָ����
-Debug> log info ��Ϣ # �����־
+Debug> vars        # 查看所有变量
+Debug> info        # 查看游戏信息
+Debug> goto 行号   # 跳转到指定行
+Debug> log info 消息 # 输出日志
 ```
 
-### 2. ��ʱ��������
+### 2. 临时调试命令
 
 ```pgn
-# ��ʾ����ֵ�������ã�
-say "��ǰ������${score}" 0.1 gray
+# 显示变量值（调试用）
+say "当前分数：${score}" 0.1 gray
 wait 500
 
-# �������
+# 条件检查
 if debug_mode == 1 show_debug_info
 ```
 
-## ѧϰ��Դ
+## 学习资源
 
-### ʾ���ű�
+### 示例脚本
 
 ```pgn
 # hello_world.pgn
 start:
     say "Hello, World!" 0.3 blue
     wait 1000
-    say "������ĵ�һ��PGN�ű�" 0.5
+    say "这是你的第一个PGN脚本" 0.5
     end
 ```
 
-### ģ����Ŀ
+### 模板项目
 
 ```
 template_game/
-������ game.pgn          # ���ű�
-������ archive/
-������ README.txt       # ˵���ĵ�
+├── game.pgn          # 主脚本
+├── archive/
+└── README.txt       # 说明文档
 ```
 
-## ��¼
+## 附录
 
-### A. �����ؼ���
+### A. 保留关键字
 
 ```
 say, sayvar, wait, end, endname
@@ -567,9 +567,9 @@ jump, choose, if
 show
 ```
 
-### B. ��ɫֵ���ձ�
+### B. 颜色值对照表
 
-| ��ɫ     | RGBֵ          | ����̨����    |
+| 颜色     | RGB值          | 控制台代码    |
 | ------ | ------------- | -------- |
 | black  | (0,0,0)       | \033[30m |
 | blue   | (0,0,255)     | \033[34m |
@@ -581,38 +581,40 @@ show
 | white  | (255,255,255) | \033[37m |
 | gray   | (128,128,128) | \033[90m |
 
-### C. �ļ���չ��
+### C. 文件扩展名
 
-- `.pgn`��PGN�ű��ļ�
-- `.sav`���浵�ļ�
-- `.inf`����Ϸ��Ϣ�ļ�
-- `.cfg`:   ��Ϸ���ü�ֵ�ļ�
+- `.pgn`：PGN脚本文件
+- `.sav`：存档文件
+- `.inf`：游戏信息文件
+- `.cfg`:   游戏设置键值文件
 
 ---
 
-## ����֧��
+## 技术支持
 
-### ��ȡ����
+### 获取帮助
 
-1. �鿴���ĵ�
-2. �鿴�����ĵ�
-3. ����ʾ���ű�
-4. ʹ�õ����նˣ�F12��
-5. �鿴��־�ļ� `pvn_engine.log`
-6. ����issue
+1. 查看本文档
+2. 查看其他文档
+3. 运行示例脚本
+4. 使用调试终端（F12）
+5. 查看日志文件 `pvn_engine.log`
+6. 发布issue
 
-### ��������
+### 报告问题
 
 ```pgn
-# �ڽű�����������
+# 在脚本中重现问题
 problem_test:
-# �������������
-say "��������..."
-# ��������
+# 导致问题的命令
+say "测试问题..."
+# 问题描述
 ```
 
-## ��ǰ
+## 当前
 
-**�汾��** PGN�﷨ v1.0  
-**�����£�** 2026��1��17��  
-**״̬��** Alpha�汾
+**版本：** PGN语法 v1.0  
+**最后更新：** 2026年1月17日  
+**状态：** Beta
+
+版本
