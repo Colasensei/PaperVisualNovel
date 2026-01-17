@@ -20,6 +20,9 @@ std::string logGradeToString(LogGrade logGrade) {
     }
 }
 
+
+string DebugLogEnabled="-1";
+
 // 有效命令列表
 const std::vector<std::string> validCommands = {
     "help", "vars", "set", "add", "history", "endings", "info", "goto", "exit", "quit", "log"
@@ -547,6 +550,30 @@ bool checkAndCleanLogFile(const std::string& logFilePath) {
  * @brief 写入日志到文件
  */
 void Log(LogGrade logGrade, const std::string& out) {
+
+    if (logGrade == LogGrade::DEBUG) 
+    {
+        if (DebugLogEnabled == "1")
+        {
+            ;
+        }
+        else if (DebugLogEnabled == "0")
+        {
+            return;// 不写入调试日志
+        }
+        else
+
+        {
+            if (readCfg("DebugLogEnabled") == "1")
+            {
+                DebugLogEnabled = "1";
+            }
+            else
+            {
+                return;// 不写入调试日志
+            }
+        }
+    }
     // 日志文件路径
     const std::string LOG_FILE_PATH = "pvn_engine.log";
 
@@ -563,21 +590,7 @@ void Log(LogGrade logGrade, const std::string& out) {
 
     std::string logMessage = logStream.str();
 
-    // 同时输出到控制台（便于调试）
-    switch (logGrade) {
-    case LogGrade::ERR:
-        std::cerr << "\033[31m" << logMessage << "\033[0m" << std::endl; // 红色
-        break;
-    case LogGrade::WARNING:
-        std::cout << "\033[33m" << logMessage << "\033[0m" << std::endl; // 黄色
-        break;
-    case LogGrade::DEBUG:
-        std::cout << "\033[90m" << logMessage << "\033[0m" << std::endl; // 灰色
-        break;
-    default:
-        std::cout << logMessage << std::endl;
-        break;
-    }
+    
 
     // 写入到日志文件
     std::ofstream logFile(LOG_FILE_PATH, std::ios::app);
