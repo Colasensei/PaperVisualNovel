@@ -73,7 +73,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                                    const std::map<std::string, int>& labels) {
     extern CurrentGameInfo g_currentGameInfo; // 外部全局变量
 
-    Log(LogGrade::DEBUG, "Executing line: " + to_string(currentLine));
+    Log(LogGrade::INFO, "Executing line: " + to_string(currentLine+1));
     Log(LogGrade::DEBUG, "Now executing: " + line);
 
     std::stringstream ss(line);
@@ -368,7 +368,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             return { -2, 0 };
         }
         else if (result == 3) { // 调试终端请求跳转
-            Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine));
+            Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine+1));
             return { 1, g_currentGameInfo.currentLine };
         }
         Log(LogGrade::DEBUG, "Next line: " + std::to_string(currentLine + 1));
@@ -410,7 +410,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
             else if (result == 3) { // 调试终端请求跳转
                 // 使用全局变量中的跳转行号
-                Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine));
+                Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine+1));
                 return { 1, g_currentGameInfo.currentLine };
             }
             Log(LogGrade::DEBUG, "Next line: " + std::to_string(currentLine + 1));
@@ -582,6 +582,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
         }
         Log(LogGrade::INFO, "Did "+varName+" = "+op+" "+std::to_string(value));
+        Log(LogGrade::INFO, "Variable " + varName + " set to " + std::to_string(gameState.getVar(varName)));
         return { 0, currentLine + 1 };
     }
 

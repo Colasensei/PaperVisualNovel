@@ -110,11 +110,11 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
         }
         else if (status == 1) {
             currentLine = nextLine;
-            Log(LogGrade::DEBUG, "DEBUG terminal Jumped to line " + to_string(currentLine));
+            Log(LogGrade::DEBUG, "DEBUG terminal Jumped to line " + to_string(currentLine+1));
         }
         else {
             currentLine = nextLine;
-            Log(LogGrade::DEBUG, "Moved to line " + to_string(currentLine));
+            Log(LogGrade::DEBUG, "Moved to line " + to_string(currentLine+1));
         }
     }
 

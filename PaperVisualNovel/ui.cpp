@@ -244,7 +244,7 @@ int operate() {
             return 0;
         }
         if (op == "ESC") {
-            
+            Log(LogGrade::INFO, "Start to print menu");
             std::cout << std::endl;
             std::cout << "\033[90m";
             std::cout << "-----游戏菜单-----" << std::endl;
@@ -253,21 +253,26 @@ int operate() {
             std::cout << "3. 不保存退出" << std::endl;
             std::cout << "------------------" << std::endl;
             std::cout << "\033[937m";
+            Log(LogGrade::INFO, "End to print menu");
             std::string op2 = getKeyName();
             if (op2 == "1") {
+                Log(LogGrade::INFO, "Continue game");
                 return 0;
             }
             else if (op2 == "2") {
                 // 保存游戏
+                Log(LogGrade::INFO, "Start to save game");
                 if (g_currentGameInfo.gameState != nullptr &&
                     !g_currentGameInfo.scriptPath.empty()) {
                     if (saveGame(g_currentGameInfo.scriptPath,
                                 g_currentGameInfo.currentLine,
                                 *g_currentGameInfo.gameState,"autosave")) {
+                        Log(LogGrade::INFO, "Game saved");
                         std::cout << "游戏已保存" << std::endl;
                         Sleep(800);
                     }
                     else {
+                        Log(LogGrade::ERR, "Failed to save game");
                         std::cout << "保存失败" << std::endl;
                         Sleep(800);
                     }
@@ -275,6 +280,8 @@ int operate() {
                 return 1; // 保存并退出
             }
             else if (op2 == "3") {
+
+                Log(LogGrade::INFO, "Quit game without saving");
                 Run();
                 return 0;
             }
@@ -282,226 +289,244 @@ int operate() {
 
         // 添加调试终端功能 - 按下F12键进入调试模式
         if (op == "F12") {
+            Log(LogGrade::INFO, "Enter debug mode");
             std::cout << std::endl;
             if (readCfg("DevModeEnabled") == "1")
             {
-                
+                Log(LogGrade::INFO, "Debug mode enabled");
                 std::cout << "\033[90m键入'help'以获取帮助" << std::endl;
+                // 调试终端主循环
+                while (1) {
+                    std::cout << "\033[90m";
+                    std::cout << std::endl << "Debug> ";
+
+                    // 获取用户输入
+                    std::string command;
+                    std::getline(std::cin, command);
+                    Log(LogGrade::DEBUG, "Debug command: " + command);
+                    if (command == "exit" || command == "quit") {
+                        Log(LogGrade::INFO, "DEBUG COMMAND: Exit debug mode");
+                        std::cout << "退出调试终端" << std::endl;
+                        std::cout << "\033[37m";
+                        break;
+                    }
+                    else if (command == "help") {
+                        Log(LogGrade::INFO, "DEBUG COMMAND: Print help information");
+                        std::cout << "可用命令:" << std::endl;
+                        std::cout << "  vars               - 显示所有变量及其值" << std::endl;
+                        std::cout << "  set <name> <value> - 设置变量值" << std::endl;
+                        std::cout << "  add <name> <value> - 增加变量值" << std::endl;
+                        std::cout << "  history            - 显示选择历史" << std::endl;
+                        std::cout << "  endings            - 显示结局收集情况" << std::endl;
+                        std::cout << "  info               - 显示当前游戏信息" << std::endl;
+                        std::cout << "  goto <line>        - 跳转到指定行号" << std::endl;
+                        std::cout << "  help               - 显示此帮助信息" << std::endl;
+                        std::cout << "  exit/quit          - 退出调试终端" << std::endl;
+                        std::cout << "  log <Grade> <Out>  - 输出日志行" << std::endl;
+                    }
+                    else if (command == "vars") {
+                        Log(LogGrade::INFO, "DEBUG COMMAND: Print all variables");
+                        if (g_currentGameInfo.gameState != nullptr) {
+                            auto& gameState = *g_currentGameInfo.gameState;
+                            std::cout << "当前变量:" << std::endl;
+                            std::cout << "----------------" << std::endl;
+
+                            // 使用新添加的方法获取所有变量
+                            auto& vars = gameState.getAllVariables();
+
+                            if (vars.empty()) {
+                                std::cout << "无变量" << std::endl;
+                            }
+                            else {
+                                for (const auto& var : vars) {
+                                    std::cout << var.first << " = " << var.second << std::endl;
+                                }
+                                std::cout << "总计: " << vars.size() << " 个变量" << std::endl;
+                            }
+                        }
+                        else {
+                            Log(LogGrade::ERR, "Game state not initialized");
+                            std::cout << "错误：游戏状态未初始化" << std::endl;
+                        }
+                    }
+                    else if (command.substr(0, 4) == "log ")
+                    {
+                        Log(LogGrade::INFO, "DEBUG COMMAND: Print log line");
+                        // 解析日志命令：log <Grade> <Out>
+                        std::stringstream ss(command.substr(4)); // 跳过 "log " 前缀
+                        std::string gradeStr, message;
+
+                        // 读取日志等级
+                        if (!(ss >> gradeStr)) {
+                            std::cout << "用法: log <Grade> <Out>" << std::endl;
+                            std::cout << "可用等级: info, warning, error, debug" << std::endl;
+                            continue;
+                        }
+
+                        // 读取剩余内容作为日志消息
+                        std::getline(ss, message);
+                        // 去除消息开头的空格
+                        if (!message.empty() && message[0] == ' ') {
+                            message = message.substr(1);
+                        }
+
+                        // 查找日志等级
+                        auto it = logGradeMap.find(gradeStr);
+                        if (it != logGradeMap.end()) {
+                            Log(it->second, message);
+                        }
+                        else {
+                            std::cout << "错误：无效的日志等级 '" << gradeStr << "'" << std::endl;
+                            std::cout << "可用等级: info, warning, error, debug" << std::endl;
+                        }
+                    }
+
+                    else if (command.substr(0, 4) == "set ") {
+                        Log(LogGrade::INFO, "DEBUG COMMAND: Set variable value");
+                        if (g_currentGameInfo.gameState != nullptr) {
+                            std::stringstream ss(command.substr(4));
+                            std::string varName;
+                            int value;
+
+                            if (ss >> varName >> value) {
+                                g_currentGameInfo.gameState->setVar(varName, value);
+                                std::cout << "已设置变量 " << varName << " = " << value << std::endl;
+                                Log(LogGrade::INFO, "Did " + varName + " = " + std::to_string(value));
+
+                            }
+                            else {
+                                std::cout << "用法: set <变量名> <值>" << std::endl;
+                            }
+                        }
+                        else {
+                            Log(LogGrade::ERR, "Game state not initialized");
+                            std::cout << "错误：游戏状态未初始化" << std::endl;
+                        }
+                    }
+                    else if (command.substr(0, 4) == "add ") {
+                        Log(LogGrade::INFO, "DEBUG COMMAND: Add value to variable");
+                        if (g_currentGameInfo.gameState != nullptr) {
+                            std::stringstream ss(command.substr(4));
+                            std::string varName;
+                            int value;
+
+                            if (ss >> varName >> value) {
+                                g_currentGameInfo.gameState->addVar(varName, value);
+                                std::cout << "已增加变量 " << varName << " += " << value << std::endl;
+                                std::cout << "当前值: " << g_currentGameInfo.gameState->getVar(varName) << std::endl;
+                            }
+                            else {
+                                std::cout << "用法: add <变量名> <值>" << std::endl;
+                            }
+                        }
+                        else {
+                            std::cout << "错误：游戏状态未初始化" << std::endl;
+                        }
+                    }
+                    else if (command == "history") {
+                        Log(LogGrade::INFO, "DEBUG COMMAND: Print choice history");
+                        if (g_currentGameInfo.gameState != nullptr) {
+                            auto& history = g_currentGameInfo.gameState->getChoiceHistory();
+                            std::cout << "选择历史 (" << history.size() << " 项):" << std::endl;
+                            std::cout << "------------------------" << std::endl;
+
+                            for (size_t i = 0; i < history.size(); i++) {
+                                std::cout << i + 1 << ". " << history[i] << std::endl;
+                            }
+                        }
+                        else {
+                            std::cout << "错误：游戏状态未初始化" << std::endl;
+                        }
+                    }
+                    else if (command == "endings") {
+                        Log(LogGrade::INFO, "DEBUG COMMAND: Print collected endings");
+                        if (g_currentGameInfo.gameState != nullptr) {
+                            auto& gameState = *g_currentGameInfo.gameState;
+                            int collected = gameState.getCollectedEndingsCount();
+                            int total = gameState.getTotalEndingsCount();
+
+                            std::cout << "结局收集情况: " << collected << "/" << total << std::endl;
+                            std::cout << "----------------" << std::endl;
+
+                            if (collected > 0) {
+                                auto& endings = gameState.getCollectedEndings();
+                                std::cout << "已收集的结局:" << std::endl;
+                                for (size_t i = 0; i < endings.size(); i++) {
+                                    std::cout << "  " << i + 1 << ". " << endings[i] << std::endl;
+                                }
+                            }
+
+                            if (total > 0) {
+                                std::cout << "收集进度: " << (collected * 100 / total) << "%" << std::endl;
+                            }
+                        }
+                        else {
+                            std::cout << "错误：游戏状态未初始化" << std::endl;
+                        }
+                    }
+                    else if (command == "info") {
+                        Log(LogGrade::INFO, "DEBUG COMMAND: Print game info");
+                        std::cout << "当前游戏信息:" << std::endl;
+                        std::cout << "----------------" << std::endl;
+                        std::cout << "脚本路径: " << g_currentGameInfo.scriptPath << std::endl;
+                        std::cout << "当前行号: " << g_currentGameInfo.currentLine << std::endl;
+                        std::cout << "游戏状态: " << (g_currentGameInfo.gameState != nullptr ? "已初始化" : "未初始化") << std::endl;
+
+                        if (g_currentGameInfo.gameState != nullptr) {
+                            auto& gameState = *g_currentGameInfo.gameState;
+                            std::cout << "已收集结局: " << gameState.getCollectedEndingsCount() << std::endl;
+                            std::cout << "选择历史数量: " << gameState.getChoiceHistory().size() << std::endl;
+                        }
+                    }
+                    else if (command.substr(0, 5) == "goto ") {
+                        Log(LogGrade::INFO, "DEBUG COMMAND: Go to specific line");
+                        std::stringstream ss(command.substr(5));
+                        int lineNum;
+
+                        if (ss >> lineNum) {
+                            if (lineNum > 0) {
+                                // 这是一个特殊的返回值，告诉调用者要跳转到指定行
+                                g_currentGameInfo.currentLine = lineNum - 1; // 转换为0-based索引
+                                std::cout << "将跳转到第 " << lineNum << " 行" << std::endl;
+                                std::cout << "退出调试终端并继续游戏..." << std::endl;
+                                cout << std::endl;
+                                std::cout << "\033[37m";
+                                return 3; // 特殊返回值表示跳转
+                            }
+                            else {
+                                std::cout << "错误：行号必须为正数" << std::endl;
+                            }
+                        }
+                        else {
+                            std::cout << "用法: goto <行号>" << std::endl;
+                        }
+                    }
+                    else if (command.empty()) {
+                        // 空命令，不做任何操作
+                    }
+                    else {
+                        // 检查是否有相似命令
+                        for (const auto& target : validCommands) {
+                            if (isSimilar(command, target)) {
+                                std::cout << "Do you mean: " << target << " ? " << std::endl;
+                                break;
+                            }
+                        }
+                        Log(LogGrade::ERR, "Unknown command: " + command);
+                        std::cout << "未知命令: " << command << std::endl;
+                        std::cout << "\033[90m";
+                        std::cout << "输入 'help' 查看可用命令" << std::endl;
+                    }
+                }
             }
             else {
+                Log(LogGrade::WARNING, "The Debug is not enabled");
                 std::cout << "\033[90m" << "调试模式未启用" << "\033[37m" << std::endl;
                 
             }
             
-
-            // 调试终端主循环
-            while (readCfg("DevModeEnabled") == "1") {
-                std::cout << "\033[90m";
-                std::cout << std::endl << "Debug> ";
-
-                // 获取用户输入
-                std::string command;
-                std::getline(std::cin, command);
-
-                if (command == "exit" || command == "quit") {
-                    std::cout << "退出调试终端" << std::endl;
-                    std::cout << "\033[37m";
-                    break;
-                }
-                else if (command == "help") {
-                    std::cout << "可用命令:" << std::endl;
-                    std::cout << "  vars               - 显示所有变量及其值" << std::endl;
-                    std::cout << "  set <name> <value> - 设置变量值" << std::endl;
-                    std::cout << "  add <name> <value> - 增加变量值" << std::endl;
-                    std::cout << "  history            - 显示选择历史" << std::endl;
-                    std::cout << "  endings            - 显示结局收集情况" << std::endl;
-                    std::cout << "  info               - 显示当前游戏信息" << std::endl;
-                    std::cout << "  goto <line>        - 跳转到指定行号" << std::endl;
-                    std::cout << "  help               - 显示此帮助信息" << std::endl;
-                    std::cout << "  exit/quit          - 退出调试终端" << std::endl;
-                    std::cout << "  log <Grade> <Out>  - 输出日志行" << std::endl;
-                }
-                else if (command == "vars") {
-                    if (g_currentGameInfo.gameState != nullptr) {
-                        auto& gameState = *g_currentGameInfo.gameState;
-                        std::cout << "当前变量:" << std::endl;
-                        std::cout << "----------------" << std::endl;
-
-                        // 使用新添加的方法获取所有变量
-                        auto& vars = gameState.getAllVariables();
-
-                        if (vars.empty()) {
-                            std::cout << "无变量" << std::endl;
-                        }
-                        else {
-                            for (const auto& var : vars) {
-                                std::cout << var.first << " = " << var.second << std::endl;
-                            }
-                            std::cout << "总计: " << vars.size() << " 个变量" << std::endl;
-                        }
-                    }
-                    else {
-                        std::cout << "错误：游戏状态未初始化" << std::endl;
-                    }
-                }
-                else if (command.substr(0, 4) == "log ")
-                {
-                    // 解析日志命令：log <Grade> <Out>
-                    std::stringstream ss(command.substr(4)); // 跳过 "log " 前缀
-                    std::string gradeStr, message;
-
-                    // 读取日志等级
-                    if (!(ss >> gradeStr)) {
-                        std::cout << "用法: log <Grade> <Out>" << std::endl;
-                        std::cout << "可用等级: info, warning, error, debug" << std::endl;
-                        continue;
-                    }
-
-                    // 读取剩余内容作为日志消息
-                    std::getline(ss, message);
-                    // 去除消息开头的空格
-                    if (!message.empty() && message[0] == ' ') {
-                        message = message.substr(1);
-                    }
-
-                    // 查找日志等级
-                    auto it = logGradeMap.find(gradeStr);
-                    if (it != logGradeMap.end()) {
-                        Log(it->second, message);
-                    }
-                    else {
-                        std::cout << "错误：无效的日志等级 '" << gradeStr << "'" << std::endl;
-                        std::cout << "可用等级: info, warning, error, debug" << std::endl;
-                    }
-                }
-
-                else if (command.substr(0, 4) == "set ") {
-                    if (g_currentGameInfo.gameState != nullptr) {
-                        std::stringstream ss(command.substr(4));
-                        std::string varName;
-                        int value;
-
-                        if (ss >> varName >> value) {
-                            g_currentGameInfo.gameState->setVar(varName, value);
-                            std::cout << "已设置变量 " << varName << " = " << value << std::endl;
-                        }
-                        else {
-                            std::cout << "用法: set <变量名> <值>" << std::endl;
-                        }
-                    }
-                    else {
-                        std::cout << "错误：游戏状态未初始化" << std::endl;
-                    }
-                }
-                else if (command.substr(0, 4) == "add ") {
-                    if (g_currentGameInfo.gameState != nullptr) {
-                        std::stringstream ss(command.substr(4));
-                        std::string varName;
-                        int value;
-
-                        if (ss >> varName >> value) {
-                            g_currentGameInfo.gameState->addVar(varName, value);
-                            std::cout << "已增加变量 " << varName << " += " << value << std::endl;
-                            std::cout << "当前值: " << g_currentGameInfo.gameState->getVar(varName) << std::endl;
-                        }
-                        else {
-                            std::cout << "用法: add <变量名> <值>" << std::endl;
-                        }
-                    }
-                    else {
-                        std::cout << "错误：游戏状态未初始化" << std::endl;
-                    }
-                }
-                else if (command == "history") {
-                    if (g_currentGameInfo.gameState != nullptr) {
-                        auto& history = g_currentGameInfo.gameState->getChoiceHistory();
-                        std::cout << "选择历史 (" << history.size() << " 项):" << std::endl;
-                        std::cout << "------------------------" << std::endl;
-
-                        for (size_t i = 0; i < history.size(); i++) {
-                            std::cout << i + 1 << ". " << history[i] << std::endl;
-                        }
-                    }
-                    else {
-                        std::cout << "错误：游戏状态未初始化" << std::endl;
-                    }
-                }
-                else if (command == "endings") {
-                    if (g_currentGameInfo.gameState != nullptr) {
-                        auto& gameState = *g_currentGameInfo.gameState;
-                        int collected = gameState.getCollectedEndingsCount();
-                        int total = gameState.getTotalEndingsCount();
-
-                        std::cout << "结局收集情况: " << collected << "/" << total << std::endl;
-                        std::cout << "----------------" << std::endl;
-
-                        if (collected > 0) {
-                            auto& endings = gameState.getCollectedEndings();
-                            std::cout << "已收集的结局:" << std::endl;
-                            for (size_t i = 0; i < endings.size(); i++) {
-                                std::cout << "  " << i + 1 << ". " << endings[i] << std::endl;
-                            }
-                        }
-
-                        if (total > 0) {
-                            std::cout << "收集进度: " << (collected * 100 / total) << "%" << std::endl;
-                        }
-                    }
-                    else {
-                        std::cout << "错误：游戏状态未初始化" << std::endl;
-                    }
-                }
-                else if (command == "info") {
-                    std::cout << "当前游戏信息:" << std::endl;
-                    std::cout << "----------------" << std::endl;
-                    std::cout << "脚本路径: " << g_currentGameInfo.scriptPath << std::endl;
-                    std::cout << "当前行号: " << g_currentGameInfo.currentLine << std::endl;
-                    std::cout << "游戏状态: " << (g_currentGameInfo.gameState != nullptr ? "已初始化" : "未初始化") << std::endl;
-
-                    if (g_currentGameInfo.gameState != nullptr) {
-                        auto& gameState = *g_currentGameInfo.gameState;
-                        std::cout << "已收集结局: " << gameState.getCollectedEndingsCount() << std::endl;
-                        std::cout << "选择历史数量: " << gameState.getChoiceHistory().size() << std::endl;
-                    }
-                }
-                else if (command.substr(0, 5) == "goto ") {
-                    std::stringstream ss(command.substr(5));
-                    int lineNum;
-
-                    if (ss >> lineNum) {
-                        if (lineNum > 0) {
-                            // 这是一个特殊的返回值，告诉调用者要跳转到指定行
-                            g_currentGameInfo.currentLine = lineNum - 1; // 转换为0-based索引
-                            std::cout << "将跳转到第 " << lineNum << " 行" << std::endl;
-                            std::cout << "退出调试终端并继续游戏..." << std::endl;
-							cout << std::endl;
-                            std::cout << "\033[37m";
-                            return 3; // 特殊返回值表示跳转
-                        }
-                        else {
-                            std::cout << "错误：行号必须为正数" << std::endl;
-                        }
-                    }
-                    else {
-                        std::cout << "用法: goto <行号>" << std::endl;
-                    }
-                }
-                else if (command.empty()) {
-                    // 空命令，不做任何操作
-                }
-                else {
-                    // 检查是否有相似命令
-                    for (const auto& target : validCommands) {
-                        if (isSimilar(command, target)) {
-                            std::cout << "Do you mean: " << target << " ? " << std::endl;
-                            break;
-                        }
-                    }
-                    std::cout << "未知命令: " << command << std::endl;
-                    std::cout << "\033[90m";
-                    std::cout << "输入 'help' 查看可用命令" << std::endl;
-                }
-            }
+            
+            
 
         }
     }
