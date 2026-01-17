@@ -103,8 +103,8 @@ jump chapter1
 ### 编译运行
 
 ```bash
-# 使用g++编译
-g++ -std=c++17 -o pgn.exe main.cpp pgn.cpp gamestate.cpp condition.cpp parser.cpp fileutils.cpp ui.cpp debug.cpp -lstdc++fs
+# 使用msvc编译
+# 推荐使用VisualStudio
 
 # 运行程序
 ./pgn.exe
@@ -158,6 +158,7 @@ Debug> endings           # 查看结局收集
 Debug> info              # 查看游戏信息
 Debug> goto 50           # 跳转到第50行
 Debug> exit              # 退出调试
+Debug> log info test     # 输出日志
 ```
 
 ## 存档系统
@@ -208,7 +209,7 @@ flag=1
 
 ## 系统要求
 
-- **编译器**: GCC 8+ 或 MSVC 2017+（支持C++17）
+- **编译器**:  MSVC 2017+（支持C++17）
 - **操作系统**: Windows 7+
 - **依赖库**: 标准C++库、Windows API
 
@@ -254,7 +255,7 @@ flag=1
 - **版本**: Alpha 1.0
 - **状态**: 开发中，功能不完整
 - **稳定性**: 可能包含未发现的错误和问题
-- **兼容性**: 仅在Windows环境下测试
+- **兼容性**: 仅在Windows 11环境下测试
 
 ## 功能范围
 
@@ -299,7 +300,6 @@ flag=1
 3. **兼容性问题**
    
    - 脚本编码要求GB2312
-   - 文件路径不支持中文
    - 某些特殊字符可能出错
 
 ## 使用条件
