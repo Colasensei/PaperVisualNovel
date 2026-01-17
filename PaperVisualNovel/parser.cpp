@@ -581,7 +581,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                            "´íÎó", MB_ICONERROR | MB_OK);
             }
         }
-        Log(LogGrade::INFO, "Did "+varName+" = "+op+" "+std::to_string(value));
+        Log(LogGrade::INFO, "Did "+varName+" "+op+" "+std::to_string(value));
         Log(LogGrade::INFO, "Variable " + varName + " set to " + std::to_string(gameState.getVar(varName)));
         return { 0, currentLine + 1 };
     }
