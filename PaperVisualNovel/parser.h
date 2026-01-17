@@ -6,6 +6,7 @@
 #include "gamestate.h"
 #include "condition.h"
 #include <map>
+
 //12
 /**
  * @brief 选择选项结构

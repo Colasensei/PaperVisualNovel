@@ -10,6 +10,8 @@
 #include "fileutils.h"
 #include "gamestate.h"
 
+extern bool DebugLogEnabled;
+
 std::string logGradeToString(LogGrade logGrade) {
     switch (logGrade) {
     case LogGrade::INFO:    return "INFO";
@@ -20,8 +22,6 @@ std::string logGradeToString(LogGrade logGrade) {
     }
 }
 
-
-string DebugLogEnabled="-1";
 
 // 有效命令列表
 const std::vector<std::string> validCommands = {
@@ -244,6 +244,7 @@ int operate() {
             return 0;
         }
         if (op == "ESC") {
+            
             std::cout << std::endl;
             std::cout << "\033[90m";
             std::cout << "-----游戏菜单-----" << std::endl;
@@ -546,32 +547,18 @@ bool checkAndCleanLogFile(const std::string& logFilePath) {
     }
 }
 
+
+
 /**
  * @brief 写入日志到文件
  */
 void Log(LogGrade logGrade, const std::string& out) {
 
-    if (logGrade == LogGrade::DEBUG) 
+    if (logGrade == LogGrade::DEBUG)
     {
-        if (DebugLogEnabled == "1")
+        if (!DebugLogEnabled)
         {
-            ;
-        }
-        else if (DebugLogEnabled == "0")
-        {
-            return;// 不写入调试日志
-        }
-        else
-
-        {
-            if (readCfg("DebugLogEnabled") == "1")
-            {
-                DebugLogEnabled = "1";
-            }
-            else
-            {
-                return;// 不写入调试日志
-            }
+            return;// 如果调试日志未启用，则返回
         }
     }
     // 日志文件路径

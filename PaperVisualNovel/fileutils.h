@@ -7,14 +7,13 @@
 #include <string>
 #include <vector>
 #include <filesystem>
-#include "header.h"
 
 namespace fs = std::filesystem;
 
 // 存档管理
 bool saveGame(const std::string& scriptPath, size_t currentLine,
-              const GameState& gameState, const std::string& saveName = "autosave");
-bool loadGame(const std::string& savePath, SaveData& saveData);
+    const GameState& gameState, const std::string& saveName = "autosave");
+
 bool hasSaveFile(const std::string& scriptPath);
 std::string getSaveInfo(const std::string& scriptPath);
 
@@ -22,6 +21,8 @@ std::string getSaveInfo(const std::string& scriptPath);
 bool safeViewFile(const std::string& filepath);
 void overwriteLine(const std::string& filename, int lineToOverwrite, 
                    const std::string& newContent);
+
+
 
 // 结局文件操作
 std::vector<std::string> readCollectedEndings(const std::string& gameFolder);

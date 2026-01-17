@@ -73,29 +73,38 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                                    const std::map<std::string, int>& labels) {
     extern CurrentGameInfo g_currentGameInfo; // 外部全局变量
 
+    Log(LogGrade::DEBUG, "Executing line: " + to_string(currentLine));
+    Log(LogGrade::DEBUG, "Now executing: " + line);
+
     std::stringstream ss(line);
     std::string cmd;
     ss >> cmd;
+    Log(LogGrade::DEBUG, "Command: " + cmd);
 
     if (cmd.empty() || cmd == "//" || cmd == "#") {
+        Log(LogGrade::DEBUG, "Empty line or comment, skipping.");
         return { 0, currentLine + 1 };
     }
 
     // 处理标签
     if (cmd.back() == ':') {
-        
+        Log(LogGrade::DEBUG, "Label found, skipping.");
         return { 0, currentLine + 1 };
     }
 
     // ==================== 游戏结束命令 ====================
     if (cmd == "end" || cmd == "END") {
+        Log(LogGrade::DEBUG, "Game end command found.");
         std::cout << "游戏结束" << std::endl;
         system("pause");
+        Log(LogGrade::DEBUG, "Exiting game.");
         return { -1, 0 };
     }
 
     // ==================== 结局名命令 ====================
     if (cmd == "endname" || cmd == "ENDNAME") {
+
+        Log(LogGrade::DEBUG, "End name command found.");
         std::string endingName;
         getline(ss, endingName);
 
@@ -120,7 +129,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             if (!gameFolder.empty()) {
                 // 保存结局
                 saveEnding(gameFolder, endingName, gameState);
-
+                Log(LogGrade::INFO, "Ending saved: " + endingName);
                 // 显示收集进度
                 int collected = gameState.getCollectedEndingsCount();
                 int total = gameState.getTotalEndingsCount();
@@ -139,13 +148,16 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         }
 
         // endname 不结束游戏，继续执行下一行
+        Log(LogGrade::DEBUG, "End name command executed.");
         return { 0, currentLine + 1 };
     }
 
     // ==================== 等待命令 ====================
     if (cmd == "wait" || cmd == "WAIT") {
+        Log(LogGrade::DEBUG, "Wait command found.");
         int wait;
         if (ss >> wait) {
+            Log(LogGrade::DEBUG, "Wait time: " + std::to_string(wait));
             Sleep(wait);
         }
         return { 0, currentLine + 1 };
@@ -154,6 +166,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
     // ==================== 说话命令（say） ====================
     //say是诗山，优化等于0 这是谁写的（恼）
     if (cmd == "say" || cmd == "SAY") {
+        Log(LogGrade::DEBUG, "Say command found.");
         std::string rest;
         getline(ss, rest);
 
@@ -171,6 +184,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
         // 检查第一个字符是否是引号
         if (rest[0] == '"') {
+            Log(LogGrade::DEBUG, "Quoted string found.");
             // 带引号语法
             size_t quote_end = 0;
             bool escaped = false;
@@ -248,6 +262,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
         }
         else {
+            Log(LogGrade::DEBUG, "Unquoted string found.");
             // 原有的无引号语法（向后兼容）
             std::stringstream rest_ss(rest);
             std::vector<std::string> tokens;
@@ -341,30 +356,35 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         else if (incolor == "red") text_color = red;
         else if (incolor == "purple") text_color = purple;
         else if (incolor == "yellow") text_color = yellow;
-
+        Log(LogGrade::DEBUG, "Text: " + final_text);
         vnout(final_text, time_val, text_color, false, true);
         int result = operate();
         if (result == 1) { // 保存并退出
+            Log(LogGrade::INFO, "Save and exit.");
             return { -1, 0 };
         }
         else if (result == 2) { // 不保存退出
+            Log(LogGrade::INFO, "Exit without saving.");
             return { -2, 0 };
         }
         else if (result == 3) { // 调试终端请求跳转
+            Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine));
             return { 1, g_currentGameInfo.currentLine };
         }
-
+        Log(LogGrade::DEBUG, "Next line: " + std::to_string(currentLine + 1));
         return { 0, currentLine + 1 };
     }
 
     // ==================== 显示变量值命令 ====================
     //别用，这玩意纯纯历史遗留，一堆bug
     if (cmd == "sayvar" || cmd == "SAYVAR") {
+        Log(LogGrade::DEBUG, "SAYVAR command detected.");
         std::string varName;
         double time_val;
         std::string incolor;
 
         if (ss >> varName >> time_val >> incolor) {
+            Log(LogGrade::DEBUG, "Variable name: " + varName);
             int varValue = gameState.getVar(varName);
             std::string text = std::to_string(varValue);
 
@@ -380,15 +400,20 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             vnout(text, time_val, text_color, false, true);
             int result = operate();
             if (result == 1) { // 保存并退出
+
+                Log(LogGrade::INFO, "Save and exit.");
                 return { -1, 0 };
             }
             else if (result == 2) { // 不保存退出
+                Log(LogGrade::INFO, "Exit without saving.");
                 return { -2, 0 };
             }
             else if (result == 3) { // 调试终端请求跳转
                 // 使用全局变量中的跳转行号
+                Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine));
                 return { 1, g_currentGameInfo.currentLine };
             }
+            Log(LogGrade::DEBUG, "Next line: " + std::to_string(currentLine + 1));
             return { 0, currentLine + 1 };
         }
     }
@@ -396,10 +421,14 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
     // ==================== 显示文件命令 ====================
     //超好用（喜）
     if (cmd == "show" || cmd == "SHOW") {
+        Log(LogGrade::DEBUG, "SHOW command detected.");
         std::string file_to_show;
         if (ss >> file_to_show) {
+            Log(LogGrade::DEBUG, "File to show: " + file_to_show);
             std::string path = where + "archive\\" + file_to_show;
             safeViewFile(path);
+            
+            Log(LogGrade::DEBUG, "Next line: " + std::to_string(currentLine + 1));
         }
         return { 0, currentLine + 1 };
     }
@@ -407,6 +436,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
     // ==================== 选择命令 ====================
     // 好用（喜）
     if (cmd == "choose" || cmd == "CHOOSE") {
+        Log(LogGrade::DEBUG, "CHOOSE command detected.");
         // 解析选项：格式为 标签:显示文本
         std::vector<ChoiceOption> options;
         std::stringstream ss(line);
@@ -436,7 +466,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                 }
             }
         }
-
+        Log(LogGrade::DEBUG, "Options parsed: " + std::to_string(options.size()));
         // 显示选择菜单
         std::cout << "\033[90m" << "请选择：" << std::endl;
         for (size_t i = 0; i < options.size(); i++) {
@@ -462,7 +492,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 				// 不做任何处理，继续等待有效输入
             }
         }
-
+        Log(LogGrade::INFO, "User choice: " + std::to_string(choice));
         // 记录选择
         gameState.recordChoice(options[choice - 1].text);
 
@@ -472,9 +502,11 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         int jumpLine = parseJumpTarget(targetLabel, labels, isLabel);
 
         if (jumpLine > 0 && jumpLine <= static_cast<int>(allLines.size())) {
+            Log(LogGrade::INFO, "Jump to line: " + std::to_string(jumpLine));
             return { 1, jumpLine - 1 };
         }
         else {
+            Log(LogGrade::ERR, "Invalid jump target: " + targetLabel);
             MessageBoxA(NULL, ("错误：选择目标无效 - " + targetLabel).c_str(),
                        "错误", MB_ICONERROR | MB_OK);
             return { -1, 0 };
@@ -483,14 +515,21 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
     // ==================== 清屏命令 ====================
     if (cmd == "cls" || cmd == "clean" || cmd == "CLS" || cmd == "CLEAN") 
     {
+
+        Log(LogGrade::DEBUG, "CLS command detected.");
         system("cls");
         return { 0, currentLine + 1 };
     }
     // ==================== 随机数命令 ====================
     if (cmd == "random" || cmd == "RANDOM") {
+        Log(LogGrade::DEBUG, "RANDOM command detected.");
         std::string varName;
         int minVal, maxVal;
         if (ss >> varName >> minVal >> maxVal) {
+            Log(LogGrade::DEBUG, "Variable name: " + varName);
+
+            Log(LogGrade::DEBUG, "Min value: " + std::to_string(minVal));
+            Log(LogGrade::DEBUG, "Max value: " + std::to_string(maxVal));
             // 确保最小值不大于最大值
             if (minVal > maxVal) {
                 std::swap(minVal, maxVal);
@@ -499,7 +538,8 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             // 生成[minVal, maxVal]范围内的随机数
             int range = maxVal - minVal + 1;
             int randomValue = minVal + (rand() % range);
-
+            
+            Log(LogGrade::DEBUG, "Random value: " + std::to_string(randomValue));
             gameState.setVar(varName, randomValue);
         }
         return { 0, currentLine + 1 };
@@ -507,6 +547,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
     // ==================== 设置变量命令 ====================
     if (cmd == "set" || cmd == "SET") {
+        Log(LogGrade::DEBUG, "SET command detected.");
         std::string varName, op;
         int value;
         if (ss >> varName >> op >> value) {
@@ -534,34 +575,48 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                 }
             }
             else {
+
+                Log(LogGrade::ERR, "Invalid operation: " + op);
                 MessageBoxA(NULL, ("错误：无效的操作符 - " + op).c_str(),
                            "错误", MB_ICONERROR | MB_OK);
             }
         }
+        Log(LogGrade::INFO, "Did "+varName+" = "+op+" "+std::to_string(value));
         return { 0, currentLine + 1 };
     }
 
     // ==================== 跳转命令 ====================
     if (cmd == "jump" || cmd == "JUMP") {
+
+
+        Log(LogGrade::DEBUG, "JUMP command detected.");
         std::string target;
         if (ss >> target) {
+
             bool isLabel;
             int jumpLine = parseJumpTarget(target, labels, isLabel);
 
             if (jumpLine > 0 && jumpLine <= static_cast<int>(allLines.size())) {
                 // 跳转到指定行号（行号从1开始，但我们需要0-based索引）
+                Log(LogGrade::INFO, "Jump to line: " + std::to_string(jumpLine));
                 return { 1, jumpLine - 1 };
             }
             else {
+                Log(LogGrade::ERR, "Invalid jump target: " + target);
                 MessageBoxA(NULL, ("错误：跳转目标无效 - " + target).c_str(),
                            "错误", MB_ICONERROR | MB_OK);
             }
         }
+
+
+
+        Log(LogGrade::ERR, "Invalid JUMP command format.");
         return { 0, currentLine + 1 };
     }
 
     // ==================== 条件命令 ====================
     if (cmd == "if" || cmd == "IF") {
+        Log(LogGrade::DEBUG, "IF command detected.");
         // 读取整个条件表达式
         std::string conditionExpr;
         getline(ss, conditionExpr);
@@ -584,19 +639,23 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         std::vector<ConditionToken> tokens = tokenizeCondition(conditionExpr);
         size_t index = 0;
         bool conditionMet = evaluateCondition(tokens, gameState, index);
-
+        Log(LogGrade::DEBUG, "Condition met: " + std::to_string(conditionMet));
         if (conditionMet) {
+            Log(LogGrade::INFO, "Condition met, jump to: " + target);
             bool isLabel;
             int jumpLine = parseJumpTarget(target, labels, isLabel);
 
             if (jumpLine > 0 && jumpLine <= static_cast<int>(allLines.size())) {
+                Log(LogGrade::INFO, "Jump to line: " + std::to_string(jumpLine));
                 return { 1, jumpLine - 1 }; // 跳转到指定行（0-based索引）
             }
             else {
+                Log(LogGrade::ERR, "Invalid jump target: " + target);
                 MessageBoxA(NULL, ("错误：跳转目标无效 - " + target).c_str(),
                            "错误", MB_ICONERROR | MB_OK);
             }
         }
+        Log(LogGrade::INFO, "Condition not met, continue to next line.");
         return { 0, currentLine + 1 };
     }
 
@@ -604,6 +663,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
     //新命令开发指南见ReadMe/下的文档
     
     // ==================== 未知命令 ====================
+    Log(LogGrade::ERR, "Unknown command: " + cmd);
     MessageBoxA(NULL, ("错误：未知的PGN命令 - " + cmd).c_str(),
                "错误", MB_ICONERROR | MB_OK);
     return { -1, 0 };

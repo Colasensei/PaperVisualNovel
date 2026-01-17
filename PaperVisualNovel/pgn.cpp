@@ -22,8 +22,10 @@ bool safeStringToInt(const std::string& str, int& result) {
 void RunPgn(const string& where, const string& file, bool loadFromSave,
     size_t savedLine, const GameState& savedState ) {
     system("cls");
-    string pgn = where + file;
 
+    Log(LogGrade::INFO, "Preparing to run game "+file);
+    string pgn = where + file;
+    Log(LogGrade::DEBUG, "Game file path: " + pgn);
     // 使用Windows API进行正确的编码转换
     int len = MultiByteToWideChar(CP_ACP, 0, file.c_str(), -1, NULL, 0);
     wchar_t* wstr = new wchar_t[len];
@@ -46,10 +48,11 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
         lines.push_back(line);
     }
     in.close();
-
+    Log(LogGrade::DEBUG, "Read " + to_string(lines.size()) + " lines from game file");
     map<string, int> labels = parseLabels(lines);
-
+    Log(LogGrade::DEBUG, "Parsed labels");
     GameState gameState;
+    Log(LogGrade::DEBUG, "Created game state");
 
     if (loadFromSave) {
         gameState = savedState;
@@ -72,62 +75,76 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
             }
         }
     }
+    Log(LogGrade::DEBUG, "Loaded collected endings");
     //d
     loadAllEndings(lines, gameState);
-
+    Log(LogGrade::DEBUG, "Loaded all endings");
     size_t currentLine = loadFromSave ? savedLine : 0;
 
     // 设置全局游戏信息
     g_currentGameInfo.scriptPath = pgn;
     g_currentGameInfo.gameState = &gameState;
+    Log(LogGrade::DEBUG, "Set global game info");
+
+
+    Log(LogGrade::INFO, "Starting game loop");
 
     while (currentLine < lines.size()) {
         // 更新当前行号
         g_currentGameInfo.currentLine = currentLine;
-
+        
         auto [status, nextLine] = executeLine(lines[currentLine], gameState,
             currentLine, lines, where, 0, labels);
 
         if (status == -1) {
             // ESC菜单中选择了保存并退出
+            Log(LogGrade::INFO, "ESC menu selected save and exit");
             Run();
             return;
         }
         else if (status == -2) {
             // ESC菜单中选择了不保存退出
+            Log(LogGrade::INFO, "ESC menu selected exit without saving");
             Run();
             return;
         }
         else if (status == 1) {
             currentLine = nextLine;
+            Log(LogGrade::DEBUG, "DEBUG terminal Jumped to line " + to_string(currentLine));
         }
         else {
             currentLine = nextLine;
+            Log(LogGrade::DEBUG, "Moved to line " + to_string(currentLine));
         }
     }
 
     // 游戏正常结束，清除全局信息
     g_currentGameInfo = { "", 0, nullptr };
+    Log(LogGrade::INFO, "Game loop finished");
 
     cout << "脚本执行完毕" << endl;
     system("pause");
+    Log(LogGrade::INFO, "Game finished");
     Run();
 }
 
 // 实现 Run() 函数
 void Run() {
+	Log(LogGrade::INFO, "Running main menu...");
     system("cls");
     vnout("PaperVisualNovel", 0.8, white, true);
     vnout("千页小说引擎", 0.8, white, true);
     vnout("ver Alpha1.0", 0.8, white, true);
     vnout("1.加载游戏 2.教程 3.关于 4.退出", 0.8, yellow, true);
+    Log(LogGrade::INFO, "Running main menu Done");
     while (true) {
         string op = getKeyName();
-
+        Log(LogGrade::INFO, "Running main menu op: " + op);
     if (op == "1") {
     string basePath = "Novel\\";
-
+    Log(LogGrade::INFO, "Load Game choose Menu.");
     if (!fs::exists(basePath)) {
+        Log(LogGrade::ERR, "Game directory does not exist");
         MessageBoxA(NULL, "错误：游戏目录不存在", "错误", MB_ICONERROR | MB_OK);
         continue;
     }
@@ -157,6 +174,7 @@ void Run() {
         }
     }
     if (folderNames.empty()) {
+        Log(LogGrade::ERR, "No game folders found");
         MessageBoxA(NULL, "错误：没有找到游戏文件夹", "错误", MB_ICONERROR | MB_OK);
     }
     else {
@@ -220,10 +238,10 @@ void Run() {
        
         cout << endl;
         cout << "请选择游戏 (输入数字): ";
-
+        Log(LogGrade::INFO, "Game choose menu loaded.");
         string choice_str = getKeyName();
         int choice_num;
-
+        Log(LogGrade::DEBUG, "menu choice_str: " + choice_str);
         if (choice_str == "ESC") {
             Run();
             return;
@@ -232,6 +250,7 @@ void Run() {
         if (!safeStringToInt(choice_str, choice_num) ||
             choice_num < 1 ||
             choice_num > static_cast<int>(folderNames.size())) {
+            Log(LogGrade::ERR, "Invalid choice");
             MessageBoxA(NULL, "错误：无效的选择", "错误", MB_ICONERROR | MB_OK);
             Run();
 			return;
@@ -241,7 +260,10 @@ void Run() {
         string file = folderNames[choice_num - 1] + ".pgn";
         string full_path = where + file;
 
+        Log(LogGrade::INFO, "Game choose: "+file);
+        Log(LogGrade::DEBUG, "Game path: "+full_path);
         if (!fs::exists(full_path)) {
+            Log(LogGrade::ERR, "Game file not found");
             MessageBoxA(NULL, "错误：找不到游戏文件", "错误", MB_ICONERROR | MB_OK);
             Run();
             return;
@@ -249,6 +271,7 @@ void Run() {
 
         // 检查是否有存档
         if (hasSaveFile(full_path)) {
+            Log(LogGrade::INFO, "Save file found");
             system("cls");
             cout << "==============================" << endl;
             cout << "检测到存档文件" << endl;
@@ -260,40 +283,51 @@ void Run() {
             cout << "请选择: ";
 
             string saveChoice = getKeyName();
+            Log(LogGrade::DEBUG, "Save choice: " + saveChoice);
 
             if (saveChoice == "1") {
               
                 SaveData saveData;
                 fs::path savePath = fs::path(where) / "saves" / "autosave.sav";
+                Log(LogGrade::DEBUG, "Load save path: " + savePath.string());
 
                 if (loadGame(savePath.string(), saveData)) {
+
+                    Log(LogGrade::INFO, "Save file loaded");
                     RunPgn(where, file, true, saveData.currentLine, saveData.gameState);
                 }
                 else {
+                    Log(LogGrade::ERR, "Save file load failed");
                     MessageBoxA(NULL, "错误：无法加载存档", "错误", MB_ICONERROR | MB_OK);
                     RunPgn(where, file);
                 }
             }
             else if (saveChoice == "2") {
+                Log(LogGrade::INFO, "Start new game");
                 // 开始新游戏
                 RunPgn(where, file);
             }
             else if (saveChoice == "3") {
+
+                Log(LogGrade::INFO, "Delete save file");
                 // 删除存档
                 fs::path savePath = fs::path(where) / "saves" / "autosave.sav";
                 if (fs::remove(savePath)) {
+                    Log(LogGrade::INFO, "Save file deleted");
                     cout << "存档已删除" << endl;
                     Sleep(1000);
                 }
                 RunPgn(where, file);
             }
             else if (saveChoice == "4") {
+                Log(LogGrade::INFO, "Return to main menu");
                 // 返回游戏列表
                 Run();
                 return;
             }
         }
         else {
+            Log(LogGrade::INFO, "No save file found");
             // 没有存档，直接开始新游戏
             RunPgn(where, file);
         }
@@ -302,13 +336,16 @@ void Run() {
     }
     }
 else if (op == "2") {
+    Log(LogGrade::INFO, "Tutorial selected");
             string where = "Novel\\HelloWorld\\";
             string file = "HelloWorld.pgn";
 
             if (fs::exists(where + file)) {
+                Log(LogGrade::DEBUG, "Tutorial file found");
                 RunPgn(where, file);
             }
             else {
+                Log(LogGrade::ERR, "Tutorial file not found");
                 MessageBoxA(NULL, "错误：找不到教程文件", "错误", MB_ICONERROR | MB_OK);
             }
 
@@ -316,6 +353,7 @@ else if (op == "2") {
             Run();
         }
         else if (op == "3") {
+            Log(LogGrade::INFO, "About selected");
             system("cls");
             cout << "关于 PaperVisualNovel" << endl;
             cout << "======================" << endl;
@@ -325,14 +363,13 @@ else if (op == "2") {
             cout << "作者：colaSensei (in BILIBILI & Github)" << endl;
             cout << endl << "按任意键返回..." << endl;
             getKeyName();
-
-            system("cls");
-            vnout("PaperVisualNovel", 0.8, white, true);
-            vnout("千页小说引擎", 0.8, white, true);
-            vnout("ver Alpha1.0", 0.8, white, true);
-            vnout("1.加载游戏 2.教程 3.关于 4.退出", 0, yellow, true);
+            Log(LogGrade::INFO, "Return to main menu");
+            Run();
         }
         else if (op == "4") {
+
+            Log(LogGrade::INFO, "Exit selected");
+            Log(LogGrade::INFO, "Thank you for using PaperVisualNovel");
             exit(0);
         }
     }

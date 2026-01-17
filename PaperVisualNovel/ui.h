@@ -12,6 +12,8 @@
 void vnout(const std::string& out, double time, color color = white,
            bool with_newline = false, bool use_typewriter_effect = true);
 
+
+
 /**
  * @brief 显示进度条
  */

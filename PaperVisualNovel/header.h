@@ -33,6 +33,7 @@ namespace fs = std::filesystem;
 const size_t MAX_FILE_SIZE = 2000 * 1024 * 1024; // 最大文件大小限制
 
 
+
 // 枚举和结构体声明
 enum color {
     black = 0,
@@ -52,6 +53,7 @@ struct SaveData {
     string scriptPath;         // 脚本路径
     string saveTime;           // 保存时间
 };
+bool loadGame(const std::string& savePath, SaveData& saveData);
 
 struct CurrentGameInfo {
     string scriptPath;

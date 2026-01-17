@@ -154,7 +154,9 @@ std::string getSaveInfo(const std::string& scriptPath) {
 // ==================== 文件安全操作 ====================
 
 bool safeViewFile(const std::string& filepath) {
+    Log(LogGrade::INFO, "Try to open file: " + filepath);
     if (!fs::exists(filepath)) {
+        Log(LogGrade::ERR, "File not found: " + filepath);
         MessageBoxA(NULL, "错误：文件不存在", "错误", MB_ICONERROR | MB_OK);
         return false;
     }
@@ -179,6 +181,7 @@ bool safeViewFile(const std::string& filepath) {
     }
 
     if (!isAllowed) {
+        Log(LogGrade::WARNING, "File type not allowed: " + filepath);
         MessageBoxA(NULL,
                    "安全限制：不允许打开此类型的文件",
                    "安全警告",
@@ -190,6 +193,7 @@ bool safeViewFile(const std::string& filepath) {
     const size_t MAX_FILE_SIZE = 2000 * 1024 * 1024;
 
     if (filesize > MAX_FILE_SIZE) {
+        Log(LogGrade::WARNING, "File size too large: " + filepath);
         MessageBoxA(NULL,
                    "文件过大，无法安全打开",
                    "安全警告",
@@ -208,6 +212,7 @@ bool safeViewFile(const std::string& filepath) {
 
     if ((INT_PTR)result <= 32) {
         DWORD error = GetLastError();
+        Log(LogGrade::ERR, "Failed to open file: " + filepath + " Error code: " + std::to_string(error));
         std::string errorMsg = "无法打开文件。错误代码: " + std::to_string(error);
         MessageBoxA(NULL, errorMsg.c_str(), "错误", MB_ICONERROR | MB_OK);
         return false;
@@ -220,6 +225,7 @@ void overwriteLine(const std::string& filename, int lineToOverwrite,
                    const std::string& newContent) {
     std::ifstream inputFile(filename);
     if (!inputFile.is_open()) {
+        Log(LogGrade::ERR, "Failed to open file: " + filename);
         MessageBoxA(NULL, "错误：无法读取设置文件", "错误", MB_ICONERROR | MB_OK);
         return;
     }
@@ -235,12 +241,14 @@ void overwriteLine(const std::string& filename, int lineToOverwrite,
         lines[lineToOverwrite - 1] = newContent;
     }
     else {
+        Log(LogGrade::ERR, "Invalid line number: " + std::to_string(lineToOverwrite));
         MessageBoxA(NULL, "错误：行号无效", "错误", MB_ICONERROR | MB_OK);
         return;
     }
 
     std::ofstream outputFile(filename);
     if (!outputFile.is_open()) {
+        Log(LogGrade::ERR, "Failed to open file: " + filename);
         MessageBoxA(NULL, "错误：无法写入设置", "错误", MB_ICONERROR | MB_OK);
         return;
     }
@@ -249,11 +257,14 @@ void overwriteLine(const std::string& filename, int lineToOverwrite,
         outputFile << l << std::endl;
     }
     outputFile.close();
+    Log(LogGrade::INFO, "Line " + std::to_string(lineToOverwrite) + " overwritten in " + filename);
 }
 
 // ==================== 结局文件操作 ====================
 
 std::vector<std::string> readCollectedEndings(const std::string& gameFolder) {
+
+    Log(LogGrade::INFO, "Reading collected endings for game: " + gameFolder);
     std::vector<std::string> endings;
     std::string filepath = "Novel\\" + gameFolder + "\\data.inf";
 
@@ -288,12 +299,15 @@ std::vector<std::string> readCollectedEndings(const std::string& gameFolder) {
     }
 
     fin.close();
+
+    Log(LogGrade::INFO, "Collected " + std::to_string(endings.size()) + " endings for game: " + gameFolder);
     return endings;
 }
 
 void saveEnding(const std::string& gameFolder, const std::string& endingName, 
                 GameState& gameState) {
     std::string filepath = "Novel\\" + gameFolder + "\\data.inf";
+    Log(LogGrade::INFO, "Saving ending: " + endingName + " for game: " + gameFolder);
 
     // 读取现有内容
     std::vector<std::string> lines;
@@ -352,10 +366,13 @@ void saveEnding(const std::string& gameFolder, const std::string& endingName,
 
         // 更新游戏状态
         gameState.addEnding(endingName);
+        Log(LogGrade::INFO, "Ending saved: " + endingName + " for game: " + gameFolder);
     }
 }
 
 void loadAllEndings(const std::vector<std::string>& lines, GameState& gameState) {
+
+    Log(LogGrade::INFO, "Loading all endings from script");
     for (const auto& line : lines) {
         std::stringstream ss(line);
         std::string cmd;
@@ -381,6 +398,7 @@ void loadAllEndings(const std::vector<std::string>& lines, GameState& gameState)
 // ==================== 游戏统计 ====================
 
 int countTotalEndingsInScript(const std::string& scriptPath) {
+    Log(LogGrade::INFO, "Counting total endings in script: " + scriptPath);
     std::set<std::string> uniqueEndings;
 
     std::ifstream in(scriptPath);
@@ -411,7 +429,7 @@ int countTotalEndingsInScript(const std::string& scriptPath) {
             std::string endingName;
             // 读取剩余部分作为结局名
             getline(ss, endingName);
-
+            Log(LogGrade::DEBUG, "Found ending: " + endingName + " at line " + std::to_string(lineNum));
             // 去除开头空格
             size_t start = endingName.find_first_not_of(" \t");
             if (start != std::string::npos) {
@@ -435,6 +453,7 @@ int countTotalEndingsInScript(const std::string& scriptPath) {
 }
 
 std::pair<int, int> getGameEndingStats(const std::string& gameFolderPath) {
+    Log(LogGrade::INFO, "Getting ending stats for game: " + gameFolderPath);
     int collected = 0;
     int total = 0;
 
@@ -514,6 +533,7 @@ std::pair<int, int> getGameEndingStats(const std::string& gameFolderPath) {
     if (collected > total && total > 0) {
         collected = total;
     }
+    Log(LogGrade::DEBUG, "Collected: " + std::to_string(collected) + ", Total: " + std::to_string(total));
 
     return { collected, total };
 }
@@ -528,6 +548,7 @@ std::string getGameFolderName(const std::string& fullPath) {
 // 辅助函数：去除字符串两端的空白字符
 std::string trim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t");
+    Log(LogGrade::DEBUG, "Trimming string: " + str);
     if (std::string::npos == first) {
         return "";
     }
@@ -537,8 +558,11 @@ std::string trim(const std::string& str) {
 
 std::string readCfg(const std::string& key) {
     const std::string filename = "data.cfg";
+
+    Log(LogGrade::INFO, "Reading configuration file.");
     std::ifstream inFile(filename);
     if (!inFile.is_open()) {
+        Log(LogGrade::ERR, "Failed to open configuration file.");
         MessageBoxA(NULL, ("错误：无法打开配置文件\n" + filename).c_str(),
             "文件错误", MB_ICONERROR | MB_OK);
         return "";  // 返回空字符串表示读取失败
@@ -573,25 +597,29 @@ std::string readCfg(const std::string& key) {
                     (value.front() == '\'' && value.back() == '\''))) {
                 value = value.substr(1, value.length() - 2);
             }
-
+            Log(LogGrade::INFO, "Found key: " + key + ", value: " + value);
             inFile.close();
             return value;
         }
+        
     }
 
     inFile.close();
     // 没有找到指定的键
+    Log(LogGrade::ERR, "Key not found in configuration file: " + key);
     MessageBoxA(NULL, ("错误：配置项未找到\n键名: " + key).c_str(),
         "配置错误", MB_ICONWARNING | MB_OK);
     return "";  // 返回空字符串表示键不存在
 }
 
 void updateFirstRunFlag(bool value) {
+	Log(LogGrade::INFO, "Updating FirstRunFlag in configuration file.");
     const std::string filename = "data.cfg";
     const std::string targetKey = "FirstRunFlag";
     // 读取整个文件到内存
     std::ifstream inFile(filename);
     if (!inFile.is_open()) {
+        Log(LogGrade::ERR, "Failed to open configuration file.");
         MessageBoxA(NULL, ("错误：无法打开文件 " + filename).c_str(),
             "错误", MB_ICONERROR | MB_OK);
         return;
@@ -614,6 +642,7 @@ void updateFirstRunFlag(bool value) {
 
                 lines.push_back(newLine);
                 keyFound = true;
+                Log(LogGrade::DEBUG, "Updated FirstRunFlag to " + value);
             }
             else {
                 // 如果没有等号，保持原样
@@ -629,12 +658,14 @@ void updateFirstRunFlag(bool value) {
 
     // 如果文件中没有找到FirstRunFlag，可以选择添加它
     if (!keyFound) {
+        Log(LogGrade::INFO, "FirstRunFlag not found, adding it.");
         lines.push_back(targetKey + " = " + (value ? "1" : "0"));
     }
 
     // 写回文件
     std::ofstream outFile(filename);
     if (!outFile.is_open()) {
+        Log(LogGrade::ERR, "Failed to open configuration file for writing.");
         MessageBoxA(NULL, ("错误：无法写入文件 " + filename).c_str(),
             "错误", MB_ICONERROR | MB_OK);
         return;
@@ -643,7 +674,7 @@ void updateFirstRunFlag(bool value) {
     for (const auto& l : lines) {
         outFile << l << std::endl;
     }
-
+    Log(LogGrade::INFO, "Configuration file updated successfully.");
     outFile.close();
     return;
    

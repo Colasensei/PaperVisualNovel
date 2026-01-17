@@ -5,13 +5,23 @@
 #include "ui.h"
 // 全局变量定义
 int quantity = 0;
+bool DebugLogEnabled = false;  // 是否启用调试日志
+
 CurrentGameInfo g_currentGameInfo = { "", 0, nullptr };
+
 
 /**
  * @brief 主函数
  */
 int main() {
-    Log(LogGrade::INFO, "----------------------------------------");
+    if (readCfg("DebugLogEnabled") == "1")
+    {
+        DebugLogEnabled=1;
+    }
+
+
+
+    Log(LogGrade::INFO, "\n\n----------------------------------------");
     Log(LogGrade::INFO, "The program is running...");
     // 初始化随机数种子
     srand(static_cast<unsigned int>(time(nullptr)));
