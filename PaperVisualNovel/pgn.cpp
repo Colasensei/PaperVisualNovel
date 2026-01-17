@@ -134,7 +134,7 @@ void Run() {
     system("cls");
     vnout("PaperVisualNovel", 0.8, white, true);
     vnout("千页小说引擎", 0.8, white, true);
-    vnout("ver Alpha1.0", 0.8, white, true);
+    vnout("ver Beta1.0", 0.8, white, true);
     vnout("1.加载游戏 2.教程 3.关于 4.退出", 0.8, yellow, true);
     Log(LogGrade::INFO, "Running main menu Done");
     while (true) {
