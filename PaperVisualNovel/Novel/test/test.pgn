@@ -1,1 +1,30 @@
-say test 0.5 white
+# 示例脚本
+start:
+    say "欢迎来到冒险游戏！" 0.5 blue
+    set score = 0
+
+    choose 2 left:向前走 right:向后走
+
+left:
+    say "你选择了向前..." 0.3
+    set score += 10
+    jump check_score
+
+right:
+    say "你选择了向后..." 0.3
+    set score += 5
+    jump check_score
+
+check_score:
+    if score >= 10 good_end
+    if score < 10 bad_end
+
+good_end:
+    say "恭喜！完美结局！" 0.5 green
+    endname "完美结局"
+    end
+
+bad_end:
+    say "游戏结束..." 0.5 red
+    endname "普通结局"
+    end
