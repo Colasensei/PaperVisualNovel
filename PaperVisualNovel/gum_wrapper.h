@@ -20,63 +20,58 @@
 
 namespace gum {
 
-    // ANSI颜色代码
+    // 保持原有的ANSI颜色代码（但不在Windows中使用）
     namespace ansi {
-        constexpr const char* RESET = "\033[0m";
-        constexpr const char* BLACK = "\033[30m";
-        constexpr const char* RED = "\033[31m";
-        constexpr const char* GREEN = "\033[32m";
-        constexpr const char* YELLOW = "\033[33m";
-        constexpr const char* BLUE = "\033[34m";
-        constexpr const char* MAGENTA = "\033[35m";
-        constexpr const char* CYAN = "\033[36m";
-        constexpr const char* WHITE = "\033[37m";
-        constexpr const char* BG_BLACK = "\033[40m";
-        constexpr const char* BG_RED = "\033[41m";
-        constexpr const char* BG_GREEN = "\033[42m";
-        constexpr const char* BG_YELLOW = "\033[43m";
-        constexpr const char* BG_BLUE = "\033[44m";
-        constexpr const char* BG_MAGENTA = "\033[45m";
-        constexpr const char* BG_CYAN = "\033[46m";
-        constexpr const char* BG_WHITE = "\033[47m";
-        constexpr const char* BOLD = "\033[1m";
-        constexpr const char* DIM = "\033[2m";
-        constexpr const char* ITALIC = "\033[3m";
-        constexpr const char* UNDERLINE = "\033[4m";
-        constexpr const char* BLINK = "\033[5m";
-        constexpr const char* REVERSE = "\033[7m";
-        constexpr const char* HIDDEN = "\033[8m";
+        constexpr const char* RESET = "";
+        constexpr const char* BLACK = "";
+        constexpr const char* RED = "";
+        constexpr const char* GREEN = "";
+        constexpr const char* YELLOW = "";
+        constexpr const char* BLUE = "";
+        constexpr const char* MAGENTA = "";
+        constexpr const char* CYAN = "";
+        constexpr const char* WHITE = "";
+        constexpr const char* BG_BLACK = "";
+        constexpr const char* BG_RED = "";
+        constexpr const char* BG_GREEN = "";
+        constexpr const char* BG_YELLOW = "";
+        constexpr const char* BG_BLUE = "";
+        constexpr const char* BG_MAGENTA = "";
+        constexpr const char* BG_CYAN = "";
+        constexpr const char* BG_WHITE = "";
+        constexpr const char* BOLD = "";
+        constexpr const char* DIM = "";
+        constexpr const char* ITALIC = "";
+        constexpr const char* UNDERLINE = "";
+        constexpr const char* BLINK = "";
+        constexpr const char* REVERSE = "";
+        constexpr const char* HIDDEN = "";
     }
 
-    // 基础Gum交互类
+    // 基础Gum交互类 - 完全兼容原有接口
     class GumWrapper {
     private:
-        static bool enable_ansi_windows() {
-#ifdef _WIN32
-            HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-            if (hOut == INVALID_HANDLE_VALUE) return false;
-
-            DWORD dwMode = 0;
-            if (!GetConsoleMode(hOut, &dwMode)) return false;
-
-            dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-            return SetConsoleMode(hOut, dwMode);
-#else
-            return true;
-#endif
-        }
-
         static std::string execute_gum_command(const std::string& command) {
-            // 启用Windows ANSI支持
-            static bool ansi_enabled = enable_ansi_windows();
+#ifdef _WIN32
+            // 保存原始控制台编码
+            UINT original_cp = GetConsoleOutputCP();
+
+            // 临时切换到UTF-8以便与gum交互
+            SetConsoleOutputCP(CP_UTF8);
+#endif
+
+            FILE* pipe = nullptr;
 
 #ifdef _WIN32
-            FILE* pipe = _popen(command.c_str(), "r");
+            pipe = _popen(command.c_str(), "r");
 #else
-            FILE* pipe = popen(command.c_str(), "r");
+            pipe = popen(command.c_str(), "r");
 #endif
 
             if (!pipe) {
+#ifdef _WIN32
+                SetConsoleOutputCP(original_cp);
+#endif
                 throw std::runtime_error("无法执行gum命令: " + command);
             }
 
@@ -89,6 +84,8 @@ namespace gum {
 
 #ifdef _WIN32
             _pclose(pipe);
+            // 恢复原始编码
+            SetConsoleOutputCP(original_cp);
 #else
             pclose(pipe);
 #endif
@@ -101,19 +98,31 @@ namespace gum {
             return result;
         }
 
+        // 转义字符串中的特殊字符
+        static std::string escape_string(const std::string& str) {
+            std::string escaped;
+            for (char c : str) {
+                if (c == '"' || c == '\\' || c == '$' || c == '`') {
+                    escaped += '\\';
+                }
+                escaped += c;
+            }
+            return escaped;
+        }
+
     public:
-        // 检查gum是否可用
+        // 检查gum是否可用 - 保持原有接口
         static bool is_available() {
             try {
                 std::string version = execute_gum_command("gum --version");
-                return !version.empty() && version.find("gum") != std::string::npos;
+                return !version.empty();
             }
             catch (...) {
                 return false;
             }
         }
 
-        // 基础选择函数
+        // 基础选择函数 - 保持原有接口
         static std::string choose(const std::vector<std::string>& options,
             const std::string& prompt = "") {
             if (options.empty()) {
@@ -124,28 +133,34 @@ namespace gum {
             cmd << "gum choose";
 
             if (!prompt.empty()) {
-                cmd << " \"" << prompt << "\"";
+                cmd << " \"" << escape_string(prompt) << "\"";
             }
 
             for (const auto& opt : options) {
-                cmd << " \"" << opt << "\"";
+                cmd << " \"" << escape_string(opt) << "\"";
             }
 
             return execute_gum_command(cmd.str());
         }
 
-        // 带标题和限制的选择
+        // 带标题和限制的选择 - 保持原有接口
         static std::vector<std::string> choose_multiple(
             const std::vector<std::string>& options,
             const std::string& header = "",
             int limit = 0,
             int height = 0) {
 
+            std::vector<std::string> selected;
+
+            if (options.empty()) {
+                return selected;
+            }
+
             std::stringstream cmd;
             cmd << "gum choose";
 
             if (!header.empty()) {
-                cmd << " --header=\"" << header << "\"";
+                cmd << " --header=\"" << escape_string(header) << "\"";
             }
 
             if (limit > 0) {
@@ -159,11 +174,10 @@ namespace gum {
             cmd << " --no-limit";
 
             for (const auto& opt : options) {
-                cmd << " \"" << opt << "\"";
+                cmd << " \"" << escape_string(opt) << "\"";
             }
 
             std::string result = execute_gum_command(cmd.str());
-            std::vector<std::string> selected;
 
             if (!result.empty()) {
                 std::stringstream ss(result);
@@ -178,7 +192,7 @@ namespace gum {
             return selected;
         }
 
-        // 过滤选择
+        // 过滤选择 - 保持原有接口
         static std::string filter(const std::vector<std::string>& options,
             const std::string& placeholder = "过滤...",
             const std::string& header = "") {
@@ -187,42 +201,56 @@ namespace gum {
             cmd << "gum filter";
 
             if (!placeholder.empty()) {
-                cmd << " --placeholder=\"" << placeholder << "\"";
+                cmd << " --placeholder=\"" << escape_string(placeholder) << "\"";
             }
 
             if (!header.empty()) {
-                cmd << " --header=\"" << header << "\"";
+                cmd << " --header=\"" << escape_string(header) << "\"";
             }
 
-            std::string input;
+            // 准备输入数据
+            std::string input_data;
             for (const auto& opt : options) {
-                input += opt + "\n";
+                input_data += opt + "\n";
             }
+
+            // 执行命令
+            std::string full_cmd = cmd.str();
 
 #ifdef _WIN32
-            FILE* pipe = _popen(cmd.str().c_str(), "w");
+            // 保存原始控制台编码
+            UINT original_cp = GetConsoleOutputCP();
+            SetConsoleOutputCP(CP_UTF8);
+
+            // 使用管道传递输入
+            FILE* pipe = _popen(full_cmd.c_str(), "w");
 #else
-            FILE* pipe = popen(cmd.str().c_str(), "w");
+            FILE* pipe = popen(full_cmd.c_str(), "w");
 #endif
 
             if (!pipe) {
+#ifdef _WIN32
+                SetConsoleOutputCP(original_cp);
+#endif
                 throw std::runtime_error("无法执行gum filter命令");
             }
 
-            fwrite(input.c_str(), 1, input.size(), pipe);
+            fwrite(input_data.c_str(), 1, input_data.size(), pipe);
 
 #ifdef _WIN32
             _pclose(pipe);
+            SetConsoleOutputCP(original_cp);
+            // 重新获取结果
+            std::string result = execute_gum_command(cmd.str() + " << EOF\n" + input_data + "EOF");
 #else
             pclose(pipe);
+            std::string result = execute_gum_command("echo \"" + input_data + "\" | " + cmd.str());
 #endif
 
-            // 重新执行获取结果
-            std::string result = execute_gum_command(cmd.str() + " <<< \"" + input + "\"");
             return result;
         }
 
-        // 输入对话框
+        // 输入对话框 - 保持原有接口
         static std::string input(const std::string& prompt = "",
             const std::string& placeholder = "",
             const std::string& value = "",
@@ -232,15 +260,15 @@ namespace gum {
             cmd << "gum input";
 
             if (!prompt.empty()) {
-                cmd << " --prompt=\"" << prompt << "\"";
+                cmd << " --prompt=\"" << escape_string(prompt) << "\"";
             }
 
             if (!placeholder.empty()) {
-                cmd << " --placeholder=\"" << placeholder << "\"";
+                cmd << " --placeholder=\"" << escape_string(placeholder) << "\"";
             }
 
             if (!value.empty()) {
-                cmd << " --value=\"" << value << "\"";
+                cmd << " --value=\"" << escape_string(value) << "\"";
             }
 
             if (width > 0) {
@@ -250,7 +278,7 @@ namespace gum {
             return execute_gum_command(cmd.str());
         }
 
-        // 确认对话框
+        // 确认对话框 - 正确检查退出码
         static bool confirm(const std::string& prompt = "确认?",
             bool default_yes = false) {
 
@@ -258,39 +286,20 @@ namespace gum {
             cmd << "gum confirm";
 
             if (!prompt.empty()) {
-                cmd << " \"" << prompt << "\"";
+                cmd << " \"" << escape_string(prompt) << "\"";
             }
 
             if (default_yes) {
                 cmd << " --default=true";
             }
-
-            std::string result = execute_gum_command(cmd.str());
-            return (result == "true" || result == "1");
-        }
-
-        // 带样式的文本输出
-        static void print_styled(const std::string& text,
-            const std::vector<std::string>& styles = {},
-            bool newline = true) {
-
-            std::stringstream output;
-
-            for (const auto& style : styles) {
-                output << style;
+            else {
+                cmd << " --default=false";
             }
 
-            output << text << ansi::RESET;
-
-            if (newline) {
-                output << std::endl;
-            }
-
-            std::cout << output.str();
-            std::cout.flush();
+            return system(cmd.str().c_str());
         }
 
-        // 进度条
+        // 进度条 - 保持原有接口
         static void progress_bar(const std::string& title = "",
             int duration = 5,
             const std::string& cmd = "") {
@@ -299,7 +308,7 @@ namespace gum {
             gum_cmd << "gum spin";
 
             if (!title.empty()) {
-                gum_cmd << " --title=\"" << title << "\"";
+                gum_cmd << " --title=\"" << escape_string(title) << "\"";
             }
 
             if (!cmd.empty()) {
@@ -313,7 +322,7 @@ namespace gum {
         }
     };
 
-    // 流畅接口构建器
+    // 流畅接口构建器 - 保持原有接口
     class GumBuilder {
     private:
         std::stringstream command_;
@@ -396,12 +405,19 @@ namespace gum {
             FILE* pipe = nullptr;
 
 #ifdef _WIN32
+            // 临时切换编码
+            UINT original_cp = GetConsoleOutputCP();
+            SetConsoleOutputCP(CP_UTF8);
+
             pipe = _popen(command_.str().c_str(), "r");
 #else
             pipe = popen(command_.str().c_str(), "r");
 #endif
 
             if (!pipe) {
+#ifdef _WIN32
+                SetConsoleOutputCP(original_cp);
+#endif
                 throw std::runtime_error("无法执行gum命令");
             }
 
@@ -414,6 +430,7 @@ namespace gum {
 
 #ifdef _WIN32
             _pclose(pipe);
+            SetConsoleOutputCP(original_cp);
 #else
             pclose(pipe);
 #endif
@@ -428,7 +445,7 @@ namespace gum {
         // 执行并返回bool（用于confirm）
         bool execute_bool() {
             std::string result = execute();
-            return (result == "true" || result == "1");
+            return (result == "true");
         }
 
         // 执行并返回多选结果

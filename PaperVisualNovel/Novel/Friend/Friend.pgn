@@ -1,13 +1,13 @@
 // 示例：简单的对话系统
 say 你好，冒险者！ 0.8 white
 wait 1000
-
+input "请输入你的名字：" name
 set friendship = 0
 
 choose 2 友好的打招呼 不理睬
 
 友好的打招呼:
-say 你好！今天天气真不错。 0.5 green
+say "你好！${name}，今天天气真不错。" 0.5 green
 set friendship += 10
 jump CONTINUE
 

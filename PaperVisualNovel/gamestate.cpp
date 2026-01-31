@@ -86,15 +86,51 @@ void GameState::clear() {
     choiceHistory.clear();
 }
 
-// ==================== 序列化/反序列化 ====================
+
+// ==================== 字符串变量操作 ====================
+
+void GameState::setStringVar(const std::string& name, const std::string& value) {
+    stringVars[name] = value;
+}
+
+std::string GameState::getStringVar(const std::string& name) const {
+    auto it = stringVars.find(name);
+    if (it != stringVars.end()) {
+        return it->second;
+    }
+    return "";
+}
+
+bool GameState::hasStringVar(const std::string& name) const {
+    return stringVars.find(name) != stringVars.end();
+}
+
+const std::map<std::string, std::string>& GameState::getAllStringVariables() const {
+    return stringVars;
+}
+// ==================== 更新序列化/反序列化 ====================
 
 std::string GameState::serialize() const {
     std::stringstream ss;
 
-    // 序列化变量
+    // 序列化整数变量
     ss << "[VARIABLES]" << std::endl;
     for (const auto& var : variables) {
         ss << var.first << "=" << var.second << std::endl;
+    }
+
+    // 序列化字符串变量
+    ss << "[STRING_VARIABLES]" << std::endl;
+    for (const auto& var : stringVars) {
+        // 对字符串进行转义，避免换行符等问题
+        std::string escaped = var.second;
+        // 替换换行符
+        size_t pos = 0;
+        while ((pos = escaped.find("\n", pos)) != std::string::npos) {
+            escaped.replace(pos, 1, "\\n");
+            pos += 2;
+        }
+        ss << var.first << "=" << escaped << std::endl;
     }
 
     // 序列化选择历史
@@ -141,6 +177,22 @@ void GameState::deserialize(const std::string& data) {
                 }
             }
         }
+        else if (currentSection == "[STRING_VARIABLES]") {
+            size_t equalsPos = line.find('=');
+            if (equalsPos != std::string::npos) {
+                std::string varName = line.substr(0, equalsPos);
+                std::string varValue = line.substr(equalsPos + 1);
+
+                // 反转义字符串
+                size_t pos = 0;
+                while ((pos = varValue.find("\\n", pos)) != std::string::npos) {
+                    varValue.replace(pos, 2, "\n");
+                    pos += 1;
+                }
+
+                stringVars[varName] = varValue;
+            }
+        }
         else if (currentSection == "[CHOICE_HISTORY]") {
             choiceHistory.push_back(line);
         }
@@ -149,3 +201,5 @@ void GameState::deserialize(const std::string& data) {
         }
     }
 }
+
+

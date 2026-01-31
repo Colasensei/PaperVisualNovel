@@ -14,7 +14,8 @@
  */
 class GameState {
 private:
-    std::map<std::string, int> variables;      // 变量存储
+    std::map<std::string, int> variables;      // 整型变量存储
+    std::map<std::string, std::string> stringVars;  //字符串变量存储
     std::vector<std::string> choiceHistory;    // 选择历史
     std::vector<std::string> collectedEndings; // 已收集的结局
     std::vector<std::string> allEndings;       // 所有可能的结局
@@ -28,6 +29,12 @@ public:
     int getVar(const std::string& name) const;
     bool hasVar(const std::string& name) const;
     const std::map<std::string, int>& getAllVariables() const;
+
+    // 字符串变量操作
+    void setStringVar(const std::string& name, const std::string& value);
+    std::string getStringVar(const std::string& name) const;
+    bool hasStringVar(const std::string& name) const;
+    const std::map<std::string, std::string>& getAllStringVariables() const;
     
     // 选择历史管理
     void recordChoice(const std::string& choice);

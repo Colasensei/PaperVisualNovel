@@ -68,12 +68,12 @@ int parseJumpTarget(const std::string& target, const std::map<std::string, int>&
 // ==================== 执行行 ====================
 
 std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState,
-                                   size_t currentLine, const std::vector<std::string>& allLines,
-                                   const std::string& where, int indentLevel,
-                                   const std::map<std::string, int>& labels) {
+    size_t currentLine, const std::vector<std::string>& allLines,
+    const std::string& where, int indentLevel,
+    const std::map<std::string, int>& labels) {
     extern CurrentGameInfo g_currentGameInfo; // 外部全局变量
 
-    Log(LogGrade::INFO, "Executing line: " + to_string(currentLine+1));
+    Log(LogGrade::INFO, "Executing line: " + to_string(currentLine + 1));
     Log(LogGrade::DEBUG, "Now executing: " + line);
 
     std::stringstream ss(line);
@@ -141,7 +141,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                 std::cout << "==============================" << std::endl;
                 std::cout << std::endl;
 
-                
+
                 std::cout << "按任意键继续..." << std::endl;
                 getKeyName();
             }
@@ -219,8 +219,9 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
             if (quote_end == 0) {
                 // 没有找到结束引号
+                Log(LogGrade::ERR, "Error: Missing closing quote in say command.At line " + std::to_string(currentLine));
                 MessageBoxA(NULL, "错误：say命令中的字符串缺少结束引号",
-                           "错误", MB_ICONERROR | MB_OK);
+                    "错误", MB_ICONERROR | MB_OK);
                 return { 0, currentLine + 1 };
             }
 
@@ -342,8 +343,18 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
 
             std::string var_name = text.substr(var_start + 2, var_end - var_start - 2);
-            int var_value = gameState.getVar(var_name);
-            final_text += std::to_string(var_value);
+
+            // 首先检查是否是字符串变量
+            std::string string_value = gameState.getStringVar(var_name);
+            if (!string_value.empty()) {
+                // 如果是字符串变量，直接使用字符串值
+                final_text += string_value;
+            }
+            else {
+                // 否则尝试作为整数变量处理
+                int var_value = gameState.getVar(var_name);
+                final_text += std::to_string(var_value);
+            }
 
             pos = var_end + 1;
         }
@@ -368,13 +379,97 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             return { -2, 0 };
         }
         else if (result == 3) { // 调试终端请求跳转
-            Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine+1));
+            Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine + 1));
             return { 1, g_currentGameInfo.currentLine };
         }
         Log(LogGrade::DEBUG, "Next line: " + std::to_string(currentLine + 1));
         return { 0, currentLine + 1 };
     }
 
+    // ==================== 输入命令 ====================
+    if (cmd == "input" || cmd == "INPUT") {
+        Log(LogGrade::DEBUG, "INPUT command detected.");
+
+        std::string prompt, varName;
+
+        // 解析命令格式：input "提示文本" varname
+        if (line.find('"') != std::string::npos) {
+            // 带引号的格式
+            size_t firstQuote = line.find('"');
+            size_t secondQuote = line.find('"', firstQuote + 1);
+
+            if (secondQuote == std::string::npos) {
+                Log(LogGrade::ERR, "Invalid input command: missing closing quote");
+                MessageBoxA(NULL, "错误：input命令格式不正确，缺少结束引号",
+                    "错误", MB_ICONERROR | MB_OK);
+                return { 0, currentLine + 1 };
+            }
+
+            prompt = line.substr(firstQuote + 1, secondQuote - firstQuote - 1);
+            std::string rest = line.substr(secondQuote + 1);
+
+            std::stringstream restSS(rest);
+            if (!(restSS >> varName)) {
+                Log(LogGrade::ERR, "Invalid input command: missing variable name");
+                MessageBoxA(NULL, "错误：input命令格式不正确，缺少变量名",
+                    "错误", MB_ICONERROR | MB_OK);
+                return { 0, currentLine + 1 };
+            }
+        }
+        else {
+            // 无引号格式（简单格式）
+            std::string rest;
+            getline(ss, rest);
+            std::stringstream restSS(rest);
+
+            if (!(restSS >> prompt >> varName)) {
+                Log(LogGrade::ERR, "Invalid input command: missing parameters");
+                MessageBoxA(NULL, "错误：input命令格式不正确，参数不足",
+                    "错误", MB_ICONERROR | MB_OK);
+                return { 0, currentLine + 1 };
+            }
+        }
+
+        if (varName.empty()) {
+            Log(LogGrade::ERR, "Invalid input command: empty variable name");
+            MessageBoxA(NULL, "错误：input命令变量名不能为空",
+                "错误", MB_ICONERROR | MB_OK);
+            return { 0, currentLine + 1 };
+        }
+
+        // 显示提示信息
+        std::cout << std::endl;
+        std::cout << "\033[32m" << prompt << "\033[37m" ;
+
+        // 获取用户输入
+        std::string userInput;
+        std::getline(std::cin, userInput);
+
+        // 去除首尾空白字符
+        size_t start = userInput.find_first_not_of(" \t\n\r");
+        if (start != std::string::npos) {
+            size_t end = userInput.find_last_not_of(" \t\n\r");
+            userInput = userInput.substr(start, end - start + 1);
+        }
+
+        if (!userInput.empty()) {
+            // 存储到字符串变量中
+            gameState.setStringVar(varName, userInput);
+            Log(LogGrade::INFO, "Input saved to string variable: " + varName + " = \"" + userInput + "\"");
+
+            
+            std::cout << std::endl;
+        }
+        else {
+            Log(LogGrade::WARNING, "User input is empty for variable: " + varName);
+            // 如果用户输入为空，仍然设置变量为空字符串
+            gameState.setStringVar(varName, "");
+            
+            std::cout << std::endl;
+        }
+
+        return { 0, currentLine + 1 };
+    }
     // ==================== 显示变量值命令 ====================
     //别用，这玩意纯纯历史遗留，一堆bug
     if (cmd == "sayvar" || cmd == "SAYVAR") {
@@ -410,7 +505,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
             else if (result == 3) { // 调试终端请求跳转
                 // 使用全局变量中的跳转行号
-                Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine+1));
+                Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine + 1));
                 return { 1, g_currentGameInfo.currentLine };
             }
             Log(LogGrade::DEBUG, "Next line: " + std::to_string(currentLine + 1));
@@ -427,7 +522,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             Log(LogGrade::DEBUG, "File to show: " + file_to_show);
             std::string path = where + "archive\\" + file_to_show;
             safeViewFile(path);
-            
+
             Log(LogGrade::DEBUG, "Next line: " + std::to_string(currentLine + 1));
         }
         return { 0, currentLine + 1 };
@@ -439,6 +534,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         Log(LogGrade::DEBUG, "CHOOSE command detected.");
         // 解析选项：格式为 标签:显示文本
         std::vector<ChoiceOption> options;
+        std::vector<std::string> gumOptions;  // 用于gum显示的选项
         std::stringstream ss(line);
         std::string cmdWord;
         int optionCount;
@@ -456,6 +552,9 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                     option.label = optionStr.substr(0, colonPos);
                     option.text = optionStr.substr(colonPos + 1);
                     options.push_back(option);
+
+                    // 构建gum显示的选项字符串 (格式: 1.文本)
+                    gumOptions.push_back(std::to_string(i + 1) + ". " + option.text);
                 }
                 else {
                     // 如果没有冒号 使用标签作为文本
@@ -463,57 +562,167 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                     option.label = optionStr;
                     option.text = optionStr;
                     options.push_back(option);
+
+                    // 构建gum显示的选项字符串
+                    gumOptions.push_back(std::to_string(i + 1) + ". " + optionStr);
                 }
             }
         }
+
         Log(LogGrade::DEBUG, "Options parsed: " + std::to_string(options.size()));
-        // 显示选择菜单
-        std::cout << "\033[90m" << "请选择：" << std::endl;
-        for (size_t i = 0; i < options.size(); i++) {
-            std::cout << i + 1 << ". ";
-            vnout(options[i].text, 0.5, white, false, true);
-            std::cout << "\033[90m";
-            std::cout << std::endl;
-        }
-        std::cout << "请输入数字选择 (1-" << options.size() << "): ";
 
-        // 获取用户选择
-        int choice = -1;
-        while (choice < 1 || choice > static_cast<int>(options.size())) {
-            std::string input = getKeyName();
-            std::cout << input;
-            std::cout << std::endl;
-            std::cout << "\033[0m";
-
-            if (input.length() == 1 && std::isdigit(input[0])) {
-                choice = input[0] - '0';
+        // 检查gum是否可用
+        if (!gum::GumWrapper::is_available()) {
+            Log(LogGrade::WARNING, "Gum not available, falling back to original method");
+            // 原有的显示逻辑
+            std::cout << "\033[90m" << "请选择：" << std::endl;
+            for (size_t i = 0; i < options.size(); i++) {
+                std::cout << i + 1 << ". ";
+                vnout(options[i].text, 0.5, white, false, true);
+                std::cout << "\033[90m";
+                std::cout << std::endl;
             }
-            else if (input == "ESC") {
-				// 不做任何处理，继续等待有效输入
+            std::cout << "请输入数字选择 (1-" << options.size() << "): ";
+
+            // 原有的输入逻辑
+            int choice = -1;
+            while (choice < 1 || choice > static_cast<int>(options.size())) {
+                std::string input = getKeyName();
+                std::cout << input;
+                std::cout << std::endl;
+                std::cout << "\033[0m";
+
+                if (input.length() == 1 && std::isdigit(input[0])) {
+                    choice = input[0] - '0';
+                }
+                else if (input == "ESC") {
+                    // 不做任何处理，继续等待有效输入
+                }
+            }
+            Log(LogGrade::INFO, "User choice (fallback): " + std::to_string(choice));
+
+            // 记录选择
+            gameState.recordChoice(options[choice - 1].text);
+            std::cout << options[choice - 1].text << endl;
+
+            // 跳转到对应的标签
+            std::string targetLabel = options[choice - 1].label;
+            bool isLabel;
+            int jumpLine = parseJumpTarget(targetLabel, labels, isLabel);
+
+            if (jumpLine > 0 && jumpLine <= static_cast<int>(allLines.size())) {
+                Log(LogGrade::INFO, "Jump to line: " + std::to_string(jumpLine));
+                return { 1, jumpLine - 1 };
+            }
+            else {
+                Log(LogGrade::ERR, "Invalid jump target: " + targetLabel);
+                MessageBoxA(NULL, ("错误：选择目标无效 - " + targetLabel).c_str(),
+                    "错误", MB_ICONERROR | MB_OK);
+                return { -1, 0 };
             }
         }
-        Log(LogGrade::INFO, "User choice: " + std::to_string(choice));
-        // 记录选择
-        gameState.recordChoice(options[choice - 1].text);
 
-        // 跳转到对应的标签
-        std::string targetLabel = options[choice - 1].label;
-        bool isLabel;
-        int jumpLine = parseJumpTarget(targetLabel, labels, isLabel);
+        // 使用gum进行选择
+        try {
+            Log(LogGrade::DEBUG, "Using gum for selection");
+            std::cout << endl;
+            // 使用gum显示选择菜单
+            std::string selected = gum::GumWrapper::choose(gumOptions);
+            // 提取第一个字符作为选项数字
+            std::string op = "";
+            if (!selected.empty()) {
+                // 提取第一个字符（如"1"、"2"等）
+                op = selected.substr(0, 1);
 
-        if (jumpLine > 0 && jumpLine <= static_cast<int>(allLines.size())) {
-            Log(LogGrade::INFO, "Jump to line: " + std::to_string(jumpLine));
-            return { 1, jumpLine - 1 };
+                // 转换为choice索引 (1-based)
+                int choice = std::stoi(op);
+
+                Log(LogGrade::INFO, "User choice (gum): " + op);
+
+                if (choice >= 1 && choice <= static_cast<int>(options.size())) {
+                    // 记录选择
+                    gameState.recordChoice(options[choice - 1].text);
+                    vnout("你选择了：" + options[choice - 1].text, 0.5, gray, true, true);
+
+                    // 跳转到对应的标签
+                    std::string targetLabel = options[choice - 1].label;
+                    bool isLabel;
+                    int jumpLine = parseJumpTarget(targetLabel, labels, isLabel);
+
+                    if (jumpLine > 0 && jumpLine <= static_cast<int>(allLines.size())) {
+                        Log(LogGrade::INFO, "Jump to line: " + std::to_string(jumpLine));
+                        return { 1, jumpLine - 1 };
+                    }
+                    else {
+                        Log(LogGrade::ERR, "Invalid jump target: " + targetLabel);
+                        MessageBoxA(NULL, ("错误：选择目标无效 - " + targetLabel).c_str(),
+                            "错误", MB_ICONERROR | MB_OK);
+                        return { -1, 0 };
+                    }
+                }
+                else {
+                    Log(LogGrade::ERR, "Invalid choice index from gum: " + op);
+                    throw std::runtime_error("Invalid choice index");
+                }
+            }
+            else {
+                Log(LogGrade::WARNING, "Gum selection cancelled or empty");
+                // 用户取消选择，重新显示当前选择
+                return { 0, currentLine + 1 };  // 重新执行当前选择
+            }
         }
-        else {
-            Log(LogGrade::ERR, "Invalid jump target: " + targetLabel);
-            MessageBoxA(NULL, ("错误：选择目标无效 - " + targetLabel).c_str(),
-                       "错误", MB_ICONERROR | MB_OK);
-            return { -1, 0 };
+        catch (const std::exception& e) {
+            Log(LogGrade::ERR, "Gum selection error: " + std::string(e.what()));
+
+            // gum失败，回退到原始方法
+            Log(LogGrade::DEBUG, "Falling back to original selection method");
+            std::cout << "\033[90m" << "请选择：" << std::endl;
+            for (size_t i = 0; i < options.size(); i++) {
+                std::cout << i + 1 << ". ";
+                vnout(options[i].text, 0.5, white, false, true);
+                std::cout << "\033[90m";
+                std::cout << std::endl;
+            }
+            std::cout << "请输入数字选择 (1-" << options.size() << "): ";
+
+            int choice = -1;
+            while (choice < 1 || choice > static_cast<int>(options.size())) {
+                std::string input = getKeyName();
+                std::cout << input;
+                std::cout << std::endl;
+                std::cout << "\033[0m";
+
+                if (input.length() == 1 && std::isdigit(input[0])) {
+                    choice = input[0] - '0';
+                }
+                else if (input == "ESC") {
+                    // 不做任何处理，继续等待有效输入
+                }
+            }
+            Log(LogGrade::INFO, "User choice (fallback after gum error): " + std::to_string(choice));
+
+            // 记录选择
+            gameState.recordChoice(options[choice - 1].text);
+
+            // 跳转到对应的标签
+            std::string targetLabel = options[choice - 1].label;
+            bool isLabel;
+            int jumpLine = parseJumpTarget(targetLabel, labels, isLabel);
+
+            if (jumpLine > 0 && jumpLine <= static_cast<int>(allLines.size())) {
+                Log(LogGrade::INFO, "Jump to line: " + std::to_string(jumpLine));
+                return { 1, jumpLine - 1 };
+            }
+            else {
+                Log(LogGrade::ERR, "Invalid jump target: " + targetLabel);
+                MessageBoxA(NULL, ("错误：选择目标无效 - " + targetLabel).c_str(),
+                    "错误", MB_ICONERROR | MB_OK);
+                return { -1, 0 };
+            }
         }
-    }
+    }   
     // ==================== 清屏命令 ====================
-    if (cmd == "cls" || cmd == "clean" || cmd == "CLS" || cmd == "CLEAN") 
+    if (cmd == "cls" || cmd == "clean" || cmd == "CLS" || cmd == "CLEAN")
     {
 
         Log(LogGrade::DEBUG, "CLS command detected.");
@@ -538,7 +747,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             // 生成[minVal, maxVal]范围内的随机数
             int range = maxVal - minVal + 1;
             int randomValue = minVal + (rand() % range);
-            
+
             Log(LogGrade::DEBUG, "Random value: " + std::to_string(randomValue));
             gameState.setVar(varName, randomValue);
         }
@@ -578,10 +787,10 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
                 Log(LogGrade::ERR, "Invalid operation: " + op);
                 MessageBoxA(NULL, ("错误：无效的操作符 - " + op).c_str(),
-                           "错误", MB_ICONERROR | MB_OK);
+                    "错误", MB_ICONERROR | MB_OK);
             }
         }
-        Log(LogGrade::INFO, "Did "+varName+" "+op+" "+std::to_string(value));
+        Log(LogGrade::INFO, "Did " + varName + " " + op + " " + std::to_string(value));
         Log(LogGrade::INFO, "Variable " + varName + " set to " + std::to_string(gameState.getVar(varName)));
         return { 0, currentLine + 1 };
     }
@@ -605,7 +814,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             else {
                 Log(LogGrade::ERR, "Invalid jump target: " + target);
                 MessageBoxA(NULL, ("错误：跳转目标无效 - " + target).c_str(),
-                           "错误", MB_ICONERROR | MB_OK);
+                    "错误", MB_ICONERROR | MB_OK);
             }
         }
 
@@ -625,6 +834,9 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         // 分割条件表达式和跳转目标
         size_t lastSpace = conditionExpr.find_last_of(' ');
         if (lastSpace == std::string::npos) {
+            Log(LogGrade::ERR, "Invalid IF command format.At "+std::to_string(currentLine));
+            Log(LogGrade::ERR, "Condition expression: " + conditionExpr);
+            Log(LogGrade::ERR, "Last space position: " + std::to_string(lastSpace));
             MessageBoxA(NULL, "错误：if命令格式不正确", "错误", MB_ICONERROR | MB_OK);
             return { 0, currentLine + 1 };
         }
@@ -653,19 +865,21 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             else {
                 Log(LogGrade::ERR, "Invalid jump target: " + target);
                 MessageBoxA(NULL, ("错误：跳转目标无效 - " + target).c_str(),
-                           "错误", MB_ICONERROR | MB_OK);
+                    "错误", MB_ICONERROR | MB_OK);
             }
         }
         Log(LogGrade::INFO, "Condition not met, continue to next line.");
-        return { 0, currentLine + 1 };
+        return { 0, currentLine + 1 }; // 继续执行下一行
     }
 
-	//欢迎来pull request（喜）
+    //欢迎来pull request（喜）
     //新命令开发指南见ReadMe/下的文档
-    
+
     // ==================== 未知命令 ====================
     Log(LogGrade::ERR, "Unknown command: " + cmd);
     MessageBoxA(NULL, ("错误：未知的PGN命令 - " + cmd).c_str(),
-               "错误", MB_ICONERROR | MB_OK);
-    return { -1, 0 };
+        "错误", MB_ICONERROR | MB_OK);
+    return { 0, currentLine + 1 }; // 继续执行下一行
+
+
 }

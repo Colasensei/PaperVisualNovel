@@ -13,16 +13,19 @@ CurrentGameInfo g_currentGameInfo = { "", 0, nullptr };
 /**
  * @brief 主函数
  */
-int main() {
+int main(int argc, char* argv[]) {
     if (readCfg("DebugLogEnabled") == "1")
     {
         DebugLogEnabled=1;
     }
 
     if (!gum::GumWrapper::is_available()) {
+        Log(LogGrade::ERR, "Gum library is not available.");
         MessageBoxA(NULL, "警告：Gum库不可用，即将进行安装。完毕后请重新启动程序。",
                    "警告", MB_ICONWARNING | MB_OK);
         system("winget install charmbracelet.gum");
+        cout<<"安装完毕，请重新启动程序。";
+        Sleep(5000);
         return 1;
     }
 
@@ -36,6 +39,30 @@ int main() {
     // 设置控制台标题
     SetConsoleTitleA("Paper Visual Novel");
     Log(LogGrade::DEBUG, "Console title set.");
+
+    // 处理命令行参数
+    if (argc > 1) {
+        // 有命令行参数，直接运行指定的PGN文件
+        std::string filePath = argv[1];
+        Log(LogGrade::INFO, "Command line argument detected: " + filePath);
+
+        // 检查文件是否存在
+        if (!fs::exists(filePath)) {
+            MessageBoxA(NULL, "警告：指定的文件不存在",
+                       "警告", MB_ICONWARNING | MB_OK);
+            Log(LogGrade::ERR, "File not found: " + filePath);
+            return 1;
+        }
+
+        // 运行指定的PGN文件
+        string where = fs::path(filePath).parent_path().string() + "\\";
+        string file = fs::path(filePath).filename().string();
+        RunPgn(where, file);
+        return 0;
+    }
+
+    // 没有命令行参数，正常启动流程
+    Log(LogGrade::INFO, "No command line arguments, starting normal flow");
     
     // 检查是否为首次运行
     string firstRun = readCfg("FirstRunFlag");

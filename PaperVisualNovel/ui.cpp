@@ -245,16 +245,54 @@ int operate() {
         }
         if (op == "ESC") {
             Log(LogGrade::INFO, "Start to print menu");
-            std::cout << std::endl;
-            std::cout << "\033[90m";
-            std::cout << "-----游戏菜单-----" << std::endl;
-            std::cout << "1. 继续游戏" << std::endl;
-            std::cout << "2. 保存并退出" << std::endl;
-            std::cout << "3. 不保存退出" << std::endl;
-            std::cout << "------------------" << std::endl;
-            std::cout << "\033[937m";
-            Log(LogGrade::INFO, "End to print menu");
-            std::string op2 = getKeyName();
+            cout << std::endl;
+            // 游戏菜单选项
+            std::vector<std::string> menu_options = {
+                "1. 继续游戏",
+                "2. 保存并退出",
+                "3. 不保存退出"
+            };
+
+            std::string selected = "";
+            std::string op2 = "";
+
+            // 检查gum是否可用
+            if (gum::GumWrapper::is_available()) {
+                try {
+                    // 使用gum显示菜单选择
+                    Log(LogGrade::INFO, "Using gum for menu selection");
+                    selected = gum::GumWrapper::choose(menu_options);
+
+                    if (!selected.empty()) {
+                        // 提取第一个字符作为选项数字
+                        op2 = selected.substr(0, 1);
+                    }
+                }
+                catch (const std::exception& e) {
+                    Log(LogGrade::ERR, "Gum selection error: " + std::string(e.what()));
+                    op2 = ""; // 清空，使用回退逻辑
+                }
+            }
+
+            // 如果gum不可用或失败，回退到原始方法
+            if (op2.empty() || !(op2 == "1" || op2 == "2" || op2 == "3")) {
+                Log(LogGrade::INFO, "Falling back to original menu display");
+                std::cout << std::endl;
+                std::cout << "\033[90m";
+                std::cout << "-----游戏菜单-----" << std::endl;
+                std::cout << "1. 继续游戏" << std::endl;
+                std::cout << "2. 保存并退出" << std::endl;
+                std::cout << "3. 不保存退出" << std::endl;
+                std::cout << "------------------" << std::endl;
+                std::cout << "\033[937m";
+                Log(LogGrade::INFO, "End to print menu");
+
+                op2 = getKeyName();
+            }
+
+            Log(LogGrade::INFO, "Menu selection: " + op2);
+
+            // 处理选择结果
             if (op2 == "1") {
                 Log(LogGrade::INFO, "Continue game");
                 return 0;
@@ -265,28 +303,31 @@ int operate() {
                 if (g_currentGameInfo.gameState != nullptr &&
                     !g_currentGameInfo.scriptPath.empty()) {
                     if (saveGame(g_currentGameInfo.scriptPath,
-                                g_currentGameInfo.currentLine,
-                                *g_currentGameInfo.gameState,"autosave")) {
+                        g_currentGameInfo.currentLine,
+                        *g_currentGameInfo.gameState, "autosave")) {
                         Log(LogGrade::INFO, "Game saved");
-                        std::cout << "游戏已保存" << std::endl;
+                        std::cout<<ANSI_GREEN << "游戏已保存" <<"\033[37m" << std::endl;//颜色：绿色
                         Sleep(800);
                     }
                     else {
                         Log(LogGrade::ERR, "Failed to save game");
-                        std::cout << "保存失败" << std::endl;
+                        std::cout <<ANSI_RED << "保存失败" <<"\033[37m" << std::endl;//颜色：红色
                         Sleep(800);
                     }
                 }
                 return 1; // 保存并退出
             }
             else if (op2 == "3") {
-
                 Log(LogGrade::INFO, "Quit game without saving");
                 Run();
                 return 0;
             }
+            else {
+                // 无效输入，默认继续游戏
+                Log(LogGrade::WARNING, "Invalid menu selection, default to continue");
+                return 0;
+            }
         }
-
         // 添加调试终端功能 - 按下F12键进入调试模式
         if (op == "F12") {
             Log(LogGrade::INFO, "Enter debug mode");
@@ -328,20 +369,35 @@ int operate() {
                         Log(LogGrade::INFO, "DEBUG COMMAND: Print all variables");
                         if (g_currentGameInfo.gameState != nullptr) {
                             auto& gameState = *g_currentGameInfo.gameState;
-                            std::cout << "当前变量:" << std::endl;
-                            std::cout << "----------------" << std::endl;
 
-                            // 使用新添加的方法获取所有变量
-                            auto& vars = gameState.getAllVariables();
+                            // 显示整数变量
+                            std::cout << "整数变量:" << std::endl;
+                            auto& intVars = gameState.getAllVariables();
 
-                            if (vars.empty()) {
-                                std::cout << "无变量" << std::endl;
+                            if (intVars.empty()) {
+                                std::cout << "无整数变量" << std::endl;
                             }
                             else {
-                                for (const auto& var : vars) {
+                                for (const auto& var : intVars) {
                                     std::cout << var.first << " = " << var.second << std::endl;
                                 }
-                                std::cout << "总计: " << vars.size() << " 个变量" << std::endl;
+                                std::cout << "总计: " << intVars.size() << " 个整数变量" << std::endl;
+                            }
+
+                            std::cout<<endl <<"====================" <<endl<< std::endl;
+
+                            // 显示字符串变量
+                            std::cout << "字符串变量:" << std::endl;
+                            auto& strVars = gameState.getAllStringVariables();
+
+                            if (strVars.empty()) {
+                                std::cout << "无字符串变量" << std::endl;
+                            }
+                            else {
+                                for (const auto& var : strVars) {
+                                    std::cout << var.first << " = \"" << var.second << "\"" << std::endl;
+                                }
+                                std::cout << "总计: " << strVars.size() << " 个字符串变量" << std::endl;
                             }
                         }
                         else {

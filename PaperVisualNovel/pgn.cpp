@@ -38,6 +38,7 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
 
     ifstream in(pgn);
     if (!in.is_open()) {
+        Log(LogGrade::ERR, "Failed to open game file "+pgn);
         MessageBoxA(NULL, "错误：无法打开游戏文件", "错误", MB_ICONERROR | MB_OK);
         return;
     }
@@ -130,14 +131,14 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
 
 // 实现 Run() 函数
 void Run() {
-	Log(LogGrade::INFO, "Running main menu...");
+    Log(LogGrade::INFO, "Running main menu...");
     system("cls");
-        printf("%s\n", "   ___  ______  __");
-        printf("%s\n", "  / _ \\/ ___/ |/ /");
-        printf("%s\n", " / ___/ (_ /    / ");
-        printf("%s\n", "/_/   \\___/_/|_/  ");
-        printf("%s\n", "                  ");
-    
+    printf("%s\n", "   ___  ______  __");
+    printf("%s\n", "  / _ \\/ ___/ |/ /");
+    printf("%s\n", " / ___/ (_ /    / ");
+    printf("%s\n", "/_/   \\___/_/|_/  ");
+    printf("%s\n", "                  ");
+
     vnout("PaperVisualNovel", 0.8, white, true);
     vnout("千页小说引擎", 0.8, white, true);
     vnout("ver Beta1.0", 0.8, white, true);
@@ -163,203 +164,241 @@ void Run() {
             cout << "未选择任何选项" << endl;
         }
         Log(LogGrade::INFO, "Running main menu op: " + op);
-    if (op == "1") {
-    string basePath = "Novel\\";
-    Log(LogGrade::INFO, "Load Game choose Menu.");
-    if (!fs::exists(basePath)) {
-        Log(LogGrade::ERR, "Game directory does not exist");
-        MessageBoxA(NULL, "错误：游戏目录不存在", "错误", MB_ICONERROR | MB_OK);
-        continue;
-    }
+        if (op == "1") {
+            string basePath = "Novel\\";
+            Log(LogGrade::INFO, "Load Game choose Menu.");
+            if (!fs::exists(basePath)) {
+                Log(LogGrade::ERR, "Game directory does not exist");
+                MessageBoxA(NULL, "错误：游戏目录不存在", "错误", MB_ICONERROR | MB_OK);
+                continue;
+            }
 
-    vector<string> folderNames;
-    vector<pair<int, int>> endingStats; // 存储每个游戏的结局统计
-    vector<string> saveInfos; // 新增：存档信息
+            vector<string> folderNames;
+            vector<pair<int, int>> endingStats; // 存储每个游戏的结局统计
+            vector<string> saveInfos; // 新增：存档信息
 
-    // 收集游戏文件夹信息
-    for (const auto& entry : fs::directory_iterator(basePath)) {
-        if (entry.is_directory()) {
-            string folderPath = entry.path().string() + "\\";
-            string folderName = getGameFolderName(entry.path().string());
-            folderNames.push_back(folderName);
+            // 收集游戏文件夹信息
+            for (const auto& entry : fs::directory_iterator(basePath)) {
+                if (entry.is_directory()) {
+                    string folderPath = entry.path().string() + "\\";
+                    string folderName = getGameFolderName(entry.path().string());
+                    folderNames.push_back(folderName);
 
-            // 获取该游戏的结局统计
-            auto stats = getGameEndingStats(folderPath);
-            endingStats.push_back(stats);
-            // 检查存档状态
-            string pgnFile = folderPath + folderName + ".pgn";
-            if (fs::exists(pgnFile)) {
-                saveInfos.push_back(getSaveInfo(pgnFile));
+                    // 获取该游戏的结局统计
+                    auto stats = getGameEndingStats(folderPath);
+                    endingStats.push_back(stats);
+                    // 检查存档状态
+                    string pgnFile = folderPath + folderName + ".pgn";
+                    if (fs::exists(pgnFile)) {
+                        saveInfos.push_back(getSaveInfo(pgnFile));
+                    }
+                    else {
+                        saveInfos.push_back("无游戏文件");
+                    }
+                }
+            }
+            if (folderNames.empty()) {
+                Log(LogGrade::ERR, "No game folders found");
+                MessageBoxA(NULL, "错误：没有找到游戏文件夹", "错误", MB_ICONERROR | MB_OK);
             }
             else {
-                saveInfos.push_back("无游戏文件");
-            }
-        }
-    }
-    if (folderNames.empty()) {
-        Log(LogGrade::ERR, "No game folders found");
-        MessageBoxA(NULL, "错误：没有找到游戏文件夹", "错误", MB_ICONERROR | MB_OK);
-    }
-    else {
-        system("cls");
-        cout << "========== 游戏列表 ==========" << endl;
-        cout << "（括号内为结局收集情况，右侧为存档状态）" << endl;
-        cout << "==============================" << endl;
-        cout << endl;
+                system("cls");
+                cout << "========== 游戏列表 ==========" << endl;
+                cout << "（括号内为结局收集情况，右侧为存档状态）" << endl;
+                cout << "==============================" << endl;
+                cout << endl;
 
-        // 显示带结局统计和存档状态的游戏列表
-        for (size_t i = 0; i < folderNames.size(); i++) {
-            int collected = endingStats[i].first;
-            int total = endingStats[i].second;
+                // 显示带结局统计和存档状态的游戏列表
+                for (size_t i = 0; i < folderNames.size(); i++) {
+                    int collected = endingStats[i].first;
+                    int total = endingStats[i].second;
 
-            cout << i + 1 << ". " << folderNames[i];
+                    cout << i + 1 << ". " << folderNames[i];
 
-            // 显示结局收集情况
-            if (total > 0) {
-                float percentage = (total > 0) ? (static_cast<float>(collected) / total * 100) : 0;
+                    // 显示结局收集情况
+                    if (total > 0) {
+                        float percentage = (total > 0) ? (static_cast<float>(collected) / total * 100) : 0;
 
-                HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+                        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
-                if (collected == total && total > 0) {
-                    SetConsoleTextAttribute(hConsole, 10);
-                    cout << " [" << collected << "/" << total << "]";
+                        if (collected == total && total > 0) {
+                            SetConsoleTextAttribute(hConsole, 10);
+                            cout << " [" << collected << "/" << total << "]";
+                        }
+                        else if (percentage >= 50) {
+                            SetConsoleTextAttribute(hConsole, 14);
+                            cout << " [" << collected << "/" << total << "]";
+                        }
+                        else if (collected > 0) {
+                            SetConsoleTextAttribute(hConsole, 13);
+                            cout << " [" << collected << "/" << total << "]";
+                        }
+                        else {
+                            SetConsoleTextAttribute(hConsole, 8);
+                            cout << " [" << collected << "/" << total << "]";
+                        }
+
+                        SetConsoleTextAttribute(hConsole, 7);
+                    }
+                    else {
+                        cout << " [无结局]";
+                    }
+
+                    // 显示存档状态（右对齐）
+                    cout << "   ";
+                    if (saveInfos[i] != "无存档") {
+                        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10); // 绿色
+                        cout << saveInfos[i];
+                        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+                    }
+                    else {
+                        cout << saveInfos[i];
+                    }
+
+                    cout << endl;
                 }
-                else if (percentage >= 50) {
-                    SetConsoleTextAttribute(hConsole, 14);
-                    cout << " [" << collected << "/" << total << "]";
+
+                cout << endl;
+
+                cout << endl;
+                cout << "请选择游戏 (输入数字): ";
+                Log(LogGrade::INFO, "Game choose menu loaded.");
+
+                getKeyforGameMenu:
+                string choice_str = getKeyName();
+                int choice_num;
+                Log(LogGrade::DEBUG, "menu choice_str: " + choice_str);
+                if (choice_str == "ESC") {
+                    Run();
+                    return;
                 }
-                else if (collected > 0) {
-                    SetConsoleTextAttribute(hConsole, 13);
-                    cout << " [" << collected << "/" << total << "]";
+
+                if (!safeStringToInt(choice_str, choice_num) ||
+                    choice_num < 1 ||
+                    choice_num > static_cast<int>(folderNames.size())) {
+                    Log(LogGrade::ERR, "Invalid choice");
+                    MessageBoxA(NULL, "错误：无效的选择", "错误", MB_ICONERROR | MB_OK);
+                    goto getKeyforGameMenu;
+                }
+
+                string where = basePath + folderNames[choice_num - 1] + "\\";
+                string file = folderNames[choice_num - 1] + ".pgn";
+                string full_path = where + file;
+
+                Log(LogGrade::INFO, "Game choose: " + file);
+                Log(LogGrade::DEBUG, "Game path: " + full_path);
+                if (!fs::exists(full_path)) {
+                    Log(LogGrade::ERR, "Game file not found");
+                    MessageBoxA(NULL, "错误：找不到游戏文件", "错误", MB_ICONERROR | MB_OK);
+                    Run();
+                    return;
+                }
+
+                // 检查是否有存档
+                if (hasSaveFile(full_path)) {
+                    Log(LogGrade::INFO, "Save file found");
+                    system("cls");
+                    cout << "检测到存档文件，是否继续游戏？" << endl;
+                    // 存档菜单选项
+                    std::vector<std::string> save_menu_options = {
+                        "1. 继续游戏（从存档开始）",
+                        "2. 开始新游戏",
+                        "3. 删除存档",
+                        "4. 返回"
+                    };
+
+                    std::string selected = "";
+                    std::string saveChoice = "";
+
+                    // 使用gum进行选择
+                    if (gum::GumWrapper::is_available()) {
+                        try {
+                            selected = gum::GumWrapper::choose(save_menu_options);
+
+                            if (!selected.empty()) {
+                                // 提取第一个字符作为选项数字
+                                saveChoice = selected.substr(0, 1);
+                            }
+                        }
+                        catch (const std::exception& e) {
+                            Log(LogGrade::ERR, "Gum selection error: " + std::string(e.what()));
+                            // gum失败，回退到原始方法
+                            saveChoice = "";
+                        }
+                    }
+
+                    // 如果gum不可用或失败，回退到原始方法
+                    if (saveChoice.empty() || !(saveChoice == "1" || saveChoice == "2" || saveChoice == "3" || saveChoice == "4")) {
+                        Log(LogGrade::INFO, "Falling back to original save menu display");
+                        cout << "==============================" << endl;
+                        cout << "检测到存档文件" << endl;
+                        cout << "1. 继续游戏（从存档开始）" << endl;
+                        cout << "2. 开始新游戏" << endl;
+                        cout << "3. 删除存档" << endl;
+                        cout << "4. 返回" << endl;
+                        cout << "==============================" << endl;
+                        cout << "请选择: ";
+
+                        saveChoice = getKeyName();
+                    }
+
+                    Log(LogGrade::DEBUG, "Save choice: " + saveChoice);
+
+                    // 处理选择结果
+                    if (saveChoice == "1") {
+                        // 继续游戏（从存档开始）
+                        SaveData saveData;
+                        fs::path savePath = fs::path(where) / "saves" / "autosave.sav";
+                        Log(LogGrade::DEBUG, "Load save path: " + savePath.string());
+
+                        if (loadGame(savePath.string(), saveData)) {
+                            Log(LogGrade::INFO, "Save file loaded");
+                            RunPgn(where, file, true, saveData.currentLine, saveData.gameState);
+                        }
+                        else {
+                            Log(LogGrade::ERR, "Save file load failed");
+                            MessageBoxA(NULL, "错误：无法加载存档", "错误", MB_ICONERROR | MB_OK);
+                            RunPgn(where, file);
+                        }
+                    }
+                    else if (saveChoice == "2") {
+                        Log(LogGrade::INFO, "Start new game");
+                        // 开始新游戏
+                        RunPgn(where, file);
+                    }
+                    else if (saveChoice == "3") {
+                        Log(LogGrade::INFO, "Delete save file");
+                        // 删除存档
+                        fs::path savePath = fs::path(where) / "saves" / "autosave.sav";
+                        if (fs::remove(savePath)) {
+                            Log(LogGrade::INFO, "Save file deleted");
+                            cout << "存档已删除" << endl;
+                            Sleep(1000);
+                        }
+                        RunPgn(where, file);
+                    }
+                    else if (saveChoice == "4") {
+                        Log(LogGrade::INFO, "Return to main menu");
+
+                        return;
+                    }
+                    else {
+                        // 无效选择，默认开始新游戏
+                        Log(LogGrade::WARNING, "Invalid save choice, default to new game");
+                        RunPgn(where, file);
+                    }
                 }
                 else {
-                    SetConsoleTextAttribute(hConsole, 8);
-                    cout << " [" << collected << "/" << total << "]";
-                }
-
-                SetConsoleTextAttribute(hConsole, 7);
-            }
-            else {
-                cout << " [无结局]";
-            }
-
-            // 显示存档状态（右对齐）
-            cout << "   ";
-            if (saveInfos[i] != "无存档") {
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10); // 绿色
-                cout << saveInfos[i];
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-            }
-            else {
-                cout << saveInfos[i];
-            }
-
-            cout << endl;
-        }
-
-        cout << endl;
-       
-        cout << endl;
-        cout << "请选择游戏 (输入数字): ";
-        Log(LogGrade::INFO, "Game choose menu loaded.");
-        string choice_str = getKeyName();
-        int choice_num;
-        Log(LogGrade::DEBUG, "menu choice_str: " + choice_str);
-        if (choice_str == "ESC") {
-            Run();
-            return;
-        }
-
-        if (!safeStringToInt(choice_str, choice_num) ||
-            choice_num < 1 ||
-            choice_num > static_cast<int>(folderNames.size())) {
-            Log(LogGrade::ERR, "Invalid choice");
-            MessageBoxA(NULL, "错误：无效的选择", "错误", MB_ICONERROR | MB_OK);
-            Run();
-			return;
-        }
-
-        string where = basePath + folderNames[choice_num - 1] + "\\";
-        string file = folderNames[choice_num - 1] + ".pgn";
-        string full_path = where + file;
-
-        Log(LogGrade::INFO, "Game choose: "+file);
-        Log(LogGrade::DEBUG, "Game path: "+full_path);
-        if (!fs::exists(full_path)) {
-            Log(LogGrade::ERR, "Game file not found");
-            MessageBoxA(NULL, "错误：找不到游戏文件", "错误", MB_ICONERROR | MB_OK);
-            Run();
-            return;
-        }
-
-        // 检查是否有存档
-        if (hasSaveFile(full_path)) {
-            Log(LogGrade::INFO, "Save file found");
-            system("cls");
-            cout << "==============================" << endl;
-            cout << "检测到存档文件" << endl;
-            cout << "1. 继续游戏（从存档开始）" << endl;
-            cout << "2. 开始新游戏" << endl;
-            cout << "3. 删除存档" << endl;
-            cout << "4. 返回" << endl;
-            cout << "==============================" << endl;
-            cout << "请选择: ";
-
-            string saveChoice = getKeyName();
-            Log(LogGrade::DEBUG, "Save choice: " + saveChoice);
-
-            if (saveChoice == "1") {
-              
-                SaveData saveData;
-                fs::path savePath = fs::path(where) / "saves" / "autosave.sav";
-                Log(LogGrade::DEBUG, "Load save path: " + savePath.string());
-
-                if (loadGame(savePath.string(), saveData)) {
-
-                    Log(LogGrade::INFO, "Save file loaded");
-                    RunPgn(where, file, true, saveData.currentLine, saveData.gameState);
-                }
-                else {
-                    Log(LogGrade::ERR, "Save file load failed");
-                    MessageBoxA(NULL, "错误：无法加载存档", "错误", MB_ICONERROR | MB_OK);
+                    Log(LogGrade::INFO, "No save file found");
+                    // 没有存档，直接开始新游戏
                     RunPgn(where, file);
                 }
-            }
-            else if (saveChoice == "2") {
-                Log(LogGrade::INFO, "Start new game");
-                // 开始新游戏
-                RunPgn(where, file);
-            }
-            else if (saveChoice == "3") {
 
-                Log(LogGrade::INFO, "Delete save file");
-                // 删除存档
-                fs::path savePath = fs::path(where) / "saves" / "autosave.sav";
-                if (fs::remove(savePath)) {
-                    Log(LogGrade::INFO, "Save file deleted");
-                    cout << "存档已删除" << endl;
-                    Sleep(1000);
-                }
-                RunPgn(where, file);
-            }
-            else if (saveChoice == "4") {
-                Log(LogGrade::INFO, "Return to main menu");
-                // 返回游戏列表
                 Run();
-                return;
             }
         }
-        else {
-            Log(LogGrade::INFO, "No save file found");
-            // 没有存档，直接开始新游戏
-            RunPgn(where, file);
-        }
-
-        Run();
-    }
-    }
-else if (op == "2") {
-    Log(LogGrade::INFO, "Tutorial selected");
+        else if (op == "2") {
+            Log(LogGrade::INFO, "Tutorial selected");
             string where = "Novel\\HelloWorld\\";
             string file = "HelloWorld.pgn";
 
@@ -408,5 +447,5 @@ else if (op == "2") {
             exit(0);
         }
     }
-}
 
+}
