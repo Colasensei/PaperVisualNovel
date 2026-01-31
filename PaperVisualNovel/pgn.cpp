@@ -100,13 +100,11 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
         if (status == -1) {
             // ESC菜单中选择了保存并退出
             Log(LogGrade::INFO, "ESC menu selected save and exit");
-            Run();
             return;
         }
         else if (status == -2) {
             // ESC菜单中选择了不保存退出
             Log(LogGrade::INFO, "ESC menu selected exit without saving");
-            Run();
             return;
         }
         else if (status == 1) {
@@ -126,7 +124,7 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
     cout << "脚本执行完毕" << endl;
     system("pause");
     Log(LogGrade::INFO, "Game finished");
-    Run();
+    return;
 }
 
 // 实现 Run() 函数
@@ -141,7 +139,7 @@ void Run() {
 
     vnout("PaperVisualNovel", 0.8, white, true);
     vnout("千页小说引擎", 0.8, white, true);
-    vnout("ver Beta1.0", 0.8, white, true);
+    vnout(VERSION, 0.8, white, true);
     cout << endl;
     Log(LogGrade::INFO, "Running main menu Done");
     while (true) {
@@ -435,6 +433,8 @@ void Run() {
             cout << "你可以使用它来创建你自己的视觉小说。" << endl;
             cout << "感谢使用 PaperVisualNovel！" << endl;
             cout << "作者：colaSensei (in BILIBILI & Github)" << endl;
+            cout << "构建日期：" << __DATE__ << endl;
+            cout << "版本号：" << VERSION << endl;
             cout << endl << "按任意键返回..." << endl;
             getKeyName();
             Log(LogGrade::INFO, "Return to main menu");

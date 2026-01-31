@@ -64,6 +64,22 @@ int main(int argc, char* argv[]) {
     // 没有命令行参数，正常启动流程
     Log(LogGrade::INFO, "No command line arguments, starting normal flow");
     
+    if (!(readCfg("AutoRun") == "0"))
+    {
+        string pgn = readCfg("AutoRun");
+        string where = "Novel\\"+pgn+"\\";
+        string file = pgn+".pgn";
+        if (!fs::exists(where + file))
+        {
+            MessageBoxA(NULL, "警告：自动运行文件不存在",
+                       "警告", MB_ICONWARNING | MB_OK);
+            Log(LogGrade::ERR, "File not found: " + where + file);
+            return 1;
+        }
+        RunPgn(where, file);
+        return 0;
+    }
+
     // 检查是否为首次运行
     string firstRun = readCfg("FirstRunFlag");
     Log(LogGrade::DEBUG, "First run flag checked.");

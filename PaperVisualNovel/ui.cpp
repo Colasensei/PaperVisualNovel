@@ -440,18 +440,86 @@ int operate() {
                     else if (command.substr(0, 4) == "set ") {
                         Log(LogGrade::INFO, "DEBUG COMMAND: Set variable value");
                         if (g_currentGameInfo.gameState != nullptr) {
-                            std::stringstream ss(command.substr(4));
+                            std::stringstream ss(command.substr(4)); // 跳过 "set " 前缀
+
+                            // 获取变量名
                             std::string varName;
-                            int value;
+                            if (!(ss >> varName)) {
+                                std::cout << "用法: set <变量名> <值>" << std::endl;
+                                std::cout << "       set <变量名> \"字符串值\" (设置字符串变量)" << std::endl;
+                                continue;
+                            }
 
-                            if (ss >> varName >> value) {
-                                g_currentGameInfo.gameState->setVar(varName, value);
-                                std::cout << "已设置变量 " << varName << " = " << value << std::endl;
-                                Log(LogGrade::INFO, "Did " + varName + " = " + std::to_string(value));
+                            // 读取剩余部分作为值
+                            std::string valueStr;
+                            std::getline(ss, valueStr);
 
+                            // 去除开头的空格
+                            if (!valueStr.empty() && valueStr[0] == ' ') {
+                                valueStr = valueStr.substr(1);
+                            }
+
+                            if (valueStr.empty()) {
+                                std::cout << "错误：值不能为空" << std::endl;
+                                std::cout << "用法: set <变量名> <值>" << std::endl;
+                                std::cout << "       set <变量名> \"字符串值\" (设置字符串变量)" << std::endl;
+                                continue;
+                            }
+
+                            // 检查是否是字符串（带引号）
+                            bool isString = false;
+                            std::string actualValue;
+
+                            if (valueStr[0] == '"' && valueStr.back() == '"') {
+                                // 带引号的字符串
+                                isString = true;
+                                actualValue = valueStr.substr(1, valueStr.length() - 2);
+                            }
+                            else if (valueStr[0] == '\'' && valueStr.back() == '\'') {
+                                // 带单引号的字符串
+                                isString = true;
+                                actualValue = valueStr.substr(1, valueStr.length() - 2);
                             }
                             else {
-                                std::cout << "用法: set <变量名> <值>" << std::endl;
+                                // 尝试解析为整数
+                                try {
+                                    int intValue = std::stoi(valueStr);
+
+                                    // 设置整数变量
+                                    g_currentGameInfo.gameState->setVar(varName, intValue);
+                                    std::cout << "已设置整数变量 " << varName << " = " << intValue << std::endl;
+                                    Log(LogGrade::INFO, "Set integer variable: " + varName + " = " + std::to_string(intValue));
+                                    continue;
+                                }
+                                catch (const std::invalid_argument&) {
+                                    
+                                        isString = true;
+                                        actualValue = valueStr;
+                                   
+                                }
+                                catch (const std::out_of_range&) {
+                                    std::cout << "错误：数字超出范围" << std::endl;
+                                    continue;
+                                }
+                            }
+
+                            // 设置字符串变量
+                            if (isString) {
+                                g_currentGameInfo.gameState->setStringVar(varName, actualValue);
+                                std::cout << "已设置字符串变量 " << varName << " = \"" << actualValue << "\"" << std::endl;
+
+                                // 显示字符串长度
+                                std::cout << "字符串长度: " << actualValue.length() << " 字符" << std::endl;
+
+                                // 如果字符串包含特殊字符，给出提示
+                                if (actualValue.find('\n') != std::string::npos) {
+                                    std::cout << "提示：字符串包含换行符" << std::endl;
+                                }
+                                if (actualValue.find('\t') != std::string::npos) {
+                                    std::cout << "提示：字符串包含制表符" << std::endl;
+                                }
+
+                                Log(LogGrade::INFO, "Set string variable: " + varName + " = \"" + actualValue + "\"");
                             }
                         }
                         else {
