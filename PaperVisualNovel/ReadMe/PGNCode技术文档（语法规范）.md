@@ -203,6 +203,281 @@ if score <= 80 bad_end
 if flag == 1 && money >= 100 secret_shop
 ```
 
+#### 插件系统语法规范
+
+##### `use` 命令
+
+###### 语法格式
+
+```
+use <插件名> [<版本号>]
+```
+
+###### 参数说明
+
+| 参数  | 必需  | 说明              |
+| --- | --- | --------------- |
+| 插件名 | 是   | 插件文件夹的名称，不区分大小写 |
+| 版本号 | 否   | 插件版本号，用于版本兼容性检查 |
+
+###### 版本号格式
+
+- 数字格式：`1.0.0`, `2.1.3`
+- 带引号格式：`"1.0.0"`, `"2.0.0-beta"`
+- 多单词格式：`1.0.0 release`, `2.1.3 stable`
+
+###### 功能描述
+
+`use` 命令用于在PGN脚本开头声明插件依赖。当脚本执行到 `use` 命令时，系统会：
+
+1. 检查 `Plugins/<插件名>/` 目录是否存在
+2. 检查 `about.cfg` 配置文件是否存在
+3. 如果指定了版本号，验证插件版本是否兼容
+4. 如果检查失败，显示错误信息并可能中断游戏执行
+
+###### 示例
+
+```pgn
+# 基本用法 - 只检查插件存在
+use Calculator
+
+# 带版本号检查
+use Calculator 1.0.0
+
+# 带引号的版本号
+use ImageViewer "2.1.0"
+
+# 多个插件依赖
+use DataProcessor 2.1.0
+use AIChat 1.5.0
+use Network "3.0.0-beta"
+```
+
+###### 错误处理
+
+| 错误类型   | 错误信息                         | 用户操作          |
+| ------ | ---------------------------- | ------------- |
+| 插件不存在  | "插件 'XXX' 未安装"               | 显示安装指导，返回主菜单  |
+| 配置文件缺失 | "插件配置文件缺失"                   | 警告，可选择继续      |
+| 版本不兼容  | "版本不匹配: 需要vX.X.X, 已安装vY.Y.Y" | 显示警告，可选择继续或返回 |
+
+---
+
+##### `plugin` 命令
+
+###### 语法格式
+
+```
+plugin <插件名> "<参数>"
+```
+
+###### 参数说明
+
+| 参数  | 必需  | 说明                   |
+| --- | --- | -------------------- |
+| 插件名 | 是   | 要执行的插件名称             |
+| 参数  | 否   | 传递给插件的参数字符串，必须用双引号包裹 |
+
+###### 特殊语法标记
+
+1. 路径转换标记
+
+| 标记          | 说明          | 示例                     | 转换结果                                 |
+| ----------- | ----------- | ---------------------- | ------------------------------------ |
+| `$file{路径}` | 转换为游戏目录绝对路径 | `$file{images/bg.png}` | `C:\Game\Novel\MyGame\images\bg.png` |
+| `$log`      | 转换为日志文件绝对路径 | `$log`                 | `C:\Game\pvn_engine.log`             |
+
+2. 变量替换标记
+
+| 标记       | 说明       | 示例              |
+| -------- | -------- | --------------- |
+| `${变量名}` | 替换为游戏变量值 | `${playerName}` |
+
+3. 转义字符
+
+| 转义序列 | 实际字符 | 说明               |
+| ---- | ---- | ---------------- |
+| `\"` | `"`  | 双引号              |
+| `\\` | `\`  | 反斜杠              |
+| `\n` | 换行符  | 换行               |
+| `\t` | 制表符  | 制表               |
+| `\r` | 回车符  | 回车               |
+| `\$` | `$`  | 美元符号（防止被识别为特殊标记） |
+| `\{` | `{`  | 左花括号             |
+| `\}` | `}`  | 右花括号             |
+
+###### 参数解析规则
+
+1. 引号处理规则
+
+2. 参数必须用双引号 `"` 包裹
+
+3. 引号内的 `\"` 会被转义为 `"`
+
+4. 支持多行参数（通过 `\n`）
+
+5. 标记嵌套规则
+
+6. `$file{}` 标记内部支持转义：
+   
+   ```pgn
+   # 正确：路径包含花括号
+   plugin Test "$file{data/{config}.json}"
+   
+   # 正确：转义花括号
+   plugin Test "$file{data/\{config\}.txt}"
+   ```
+
+7. `${}` 变量替换标记内部不支持嵌套
+
+###### 执行优先级
+
+1. 转义字符处理
+2. 变量替换 `${}`
+3. 路径转换 `$file{}` 和 `$log`
+
+```pgn
+# 无参数执行
+plugin Calculator
+
+# 简单参数
+plugin Calculator "1+2*3"
+
+# 带路径转换
+plugin ImageViewer "$file{scenes/opening.png}"
+```
+
+###### 复杂参数示例
+
+```pgn
+# 多参数、转义、路径转换组合
+plugin DataExporter "
+--input \"$file{saves/autosave.sav}\" 
+--output \"$file{exports/data.json}\" 
+--log \"$log\" 
+--format JSON 
+--verbose
+"
+
+# 包含引号和换行的参数
+plugin ChatBot "你好！\n我是AI助手。\n你说：\"今天天气真好\"\n我回复：\"是的！\""
+
+# 使用游戏变量
+set playerLevel 5
+plugin Achievement "恭喜达到 ${playerLevel} 级！"
+
+# 特殊字符处理
+plugin Test "特殊路径：$file{data/\{test\}/file.txt} 字面量：\\$file\\{\\}"
+```
+
+###### 错误处理
+
+| 错误类型   | 处理方式           |
+| ------ | -------------- |
+| 插件未安装  | 提示安装，继续执行下一行   |
+| 执行失败   | 显示错误信息，继续执行下一行 |
+| 参数解析错误 | 显示语法错误，继续执行下一行 |
+
+###### 最佳实践
+
+1. 参数格式化
+
+```pgn
+# 推荐：清晰的多参数格式
+plugin AdvancedPlugin "
+--mode interactive
+--input \"$file{data/input.dat}\"
+--output \"$file{results/output.json}\"
+--log-level debug
+--timeout 30
+"
+
+# 不推荐：难以阅读的单行复杂参数
+plugin AdvancedPlugin "--mode interactive --input \"$file{data/input.dat}\" --output \"$file{results/output.json}\" --log-level debug --timeout 30"
+```
+
+2. 错误处理
+
+```pgn
+# 可以配合条件判断使用
+if ${hasPlugin} == 1 plugin "SpecialEffect" "fireworks"
+else say "特殊效果插件未安装" 0.5 yellow
+```
+
+3. 性能考虑
+
+```pgn
+# 避免在循环中频繁调用插件
+# 不推荐：
+jump loop_start
+:loop_start
+plugin Calculator "${counter} * 2"
+add counter 1
+if ${counter} < 10 jump loop_start
+
+# 推荐：批量处理
+plugin Calculator "batch_process ${counter}"
+```
+
+###### 注意事项
+
+1. **安全性**：插件以系统权限执行，确保插件来源可信
+2. **性能**：插件调用有启动开销，避免频繁调用
+3. **兼容性**：不同操作系统可能影响路径处理和命令执行
+4. **调试**：使用调试终端测试插件参数
+5. **版本管理**：插件更新可能导致脚本不兼容
+
+###### 扩展语法（未来可能支持）
+
+```pgn
+# 异步执行（建议）
+plugin async ChatBot "处理中..."
+
+# 获取返回值
+set result = plugin Calculator "eval: 1+2"
+
+# 管道操作
+plugin DataGenerator "generate" | plugin DataProcessor "analyze"
+```
+
+---
+
+######  完整示例脚本
+
+```pgn
+# AdventureGame.pgn
+# 声明插件依赖
+use ImageViewer "2.1.0"
+use Calculator 1.0.0
+use MusicPlayer "1.3.0"
+
+say "欢迎来到奇幻冒险！" 0.5 white
+
+# 显示开场图片
+plugin ImageViewer "$file{images/opening.jpg} --fullscreen --duration 3000"
+
+# 属性计算
+set strength 10
+set agility 8
+plugin Calculator "combat_score: ${strength} * 2 + ${agility}"
+
+# 背景音乐
+plugin MusicPlayer "play --file \"$file{music/theme.mp3}\" --volume 80 --loop"
+
+# 复杂对话系统
+set playerName "冒险者"
+plugin DialogSystem "
+speaker: 老人
+message: \"你好，${playerName}！\n欢迎来到我们的村庄。\"
+choices: [\"询问任务\", \"了解历史\", \"离开\"]
+timeout: 30
+"
+
+say "游戏开始！" 0.3 green
+```
+
+这个语法规范为插件系统的使用提供了完整的指导，确保开发者能够正确、安全地使用插件功能。 
+
 ### 多媒体控制
 
 #### `show` - 显示文件
