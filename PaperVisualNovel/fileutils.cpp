@@ -781,6 +781,10 @@ bool runPlugin(const std::string& pluginName, const std::string& runArgs) {
         return false;
     }
 
+    if ( pluginInfo.runCommand == ".exe" || pluginInfo.runCommand == "bin"|| pluginInfo.runCommand == "/") {
+        pluginInfo.runCommand= "";//直接运行可执行文件
+    }
+
     // 构建完整的运行命令
     std::string fullCommand;
 
