@@ -146,8 +146,9 @@ void Run() {
         std::vector<std::string> menu_options = {
          "1. 加载游戏",
          "2. 教程",
-         "3. 关于",
-         "4. 退出"
+         "3. 插件",
+         "4. 关于",
+         "5. 退出"
         };
         std::string selected = gum::GumWrapper::choose(
             menu_options
@@ -413,6 +414,57 @@ void Run() {
             Run();
         }
         else if (op == "3") {
+            Log(LogGrade::INFO, "Plugin management selected");
+
+            // 读取已安装的插件
+            std::vector<PluginInfo> plugins = readInstalledPlugins();
+
+            if (plugins.empty()) {
+                system("cls");
+                std::cout << "========== 插件管理 ==========" << std::endl;
+                std::cout << "当前没有安装任何插件。" << std::endl;
+                std::cout << "==============================" << std::endl;
+                system("pause");
+                Run();
+            }
+            else {
+                system("cls");
+                std::cout << "========== 已安装插件 ==========" << std::endl;
+                std::cout << "插件数量: " << plugins.size() << std::endl;
+                std::cout << "================================" << std::endl;
+                std::cout << std::endl;
+
+                // 显示所有插件信息
+                for (size_t i = 0; i < plugins.size(); i++) {
+                    const PluginInfo& plugin = plugins[i];
+
+                    std::cout << i + 1 << ". " << plugin.name;
+
+                    if (!plugin.version.empty()) {
+                        std::cout << " v" << plugin.version;
+                    }
+
+                    std::cout << std::endl;
+
+                    if (!plugin.description.empty()) {
+                        std::cout << "   描述: " << plugin.description << std::endl;
+                    }
+
+                    if (!plugin.author.empty()) {
+                        std::cout << "   作者: " << plugin.author << std::endl;
+                    }
+
+                    std::cout << "   命令: " << plugin.runCommand << " " << plugin.runFile << std::endl;
+                    std::cout << std::endl;
+                }
+                system("pause");
+                Run();
+            }
+
+        }
+            
+           
+        else if (op == "4") {
             Log(LogGrade::INFO, "About selected");
             system("cls");
             printf("%s\n", "   ___                    ");
@@ -440,7 +492,7 @@ void Run() {
             Log(LogGrade::INFO, "Return to main menu");
             Run();
         }
-        else if (op == "4") {
+        else if (op == "5") {
 
             Log(LogGrade::INFO, "Exit selected");
             Log(LogGrade::INFO, "Thank you for using PaperVisualNovel");

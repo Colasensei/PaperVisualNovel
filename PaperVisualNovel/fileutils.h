@@ -10,6 +10,33 @@
 
 namespace fs = std::filesystem;
 
+
+// 插件信息结构体
+struct PluginInfo {
+    std::string name;          // 插件文件夹名
+    std::string runCommand;    // 运行命令（如 "python"）
+    std::string runFile;       // 运行文件（如 "test.py"）
+    std::string description;   // 插件描述（可选）
+    std::string version;       // 插件版本（可选）
+    std::string author;        // 作者（可选）
+};
+
+/**
+ * @brief 运行指定插件
+ * @param pluginName 插件名称（文件夹名）
+ * @param runArgs 运行参数（可选）
+ * @return true表示成功执行，false表示失败
+ */
+bool runPlugin(const std::string& pluginName, const std::string& runArgs = "");
+
+
+std::string trim(const std::string& str);
+
+// 插件管理函数
+std::vector<PluginInfo> readInstalledPlugins();
+bool hasPlugin(const std::string& pluginName);
+std::string getPluginFullCommand(const PluginInfo& plugin);
+
 // 存档管理
 bool saveGame(const std::string& scriptPath, size_t currentLine,
     const GameState& gameState, const std::string& saveName = "autosave");

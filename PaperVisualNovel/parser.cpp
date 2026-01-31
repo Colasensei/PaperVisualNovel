@@ -871,7 +871,520 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         Log(LogGrade::INFO, "Condition not met, continue to next line.");
         return { 0, currentLine + 1 }; // 继续执行下一行
     }
+    // ==================== 插件命令 ====================
+// ==================== 插件命令 ====================
+    if (cmd == "plugin" || cmd == "PLUGIN" || cmd == "runplugin" || cmd == "RUNPLUGIN") {
+        Log(LogGrade::INFO, "PLUGIN command detected at line " + std::to_string(currentLine + 1));
 
+        std::string pluginName, runArgs;
+
+        // 去除命令部分，获取剩余内容
+        std::string rest;
+        getline(ss, rest);
+
+        // 手动解析引号，支持\"转义
+        size_t firstQuote = std::string::npos;
+        bool inQuotes = false;
+        bool escaped = false;
+
+        // 首先找到第一个非转义的引号
+        for (size_t i = 0; i < rest.length(); i++) {
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (rest[i] == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (rest[i] == '"') {
+                firstQuote = i;
+                break;
+            }
+        }
+
+        if (firstQuote == std::string::npos) {
+            // 格式1：没有引号，只有插件名
+            std::stringstream restSS(rest);
+            if (!(restSS >> pluginName)) {
+                Log(LogGrade::ERR, "Invalid plugin command format: missing plugin name");
+                MessageBoxA(NULL, "错误：plugin命令格式不正确，缺少插件名",
+                    "错误", MB_ICONERROR | MB_OK);
+                return { 0, currentLine + 1 };
+            }
+            runArgs = "";  // 无参数
+        }
+        else {
+            // 格式2或3：有引号
+
+            // 获取插件名（第一个引号前的部分）
+            std::string beforeQuote = rest.substr(0, firstQuote);
+            std::stringstream beforeSS(beforeQuote);
+            if (!(beforeSS >> pluginName)) {
+                Log(LogGrade::ERR, "Invalid plugin command format: missing plugin name before quotes");
+                MessageBoxA(NULL, "错误：plugin命令格式不正确，引号前缺少插件名",
+                    "错误", MB_ICONERROR | MB_OK);
+                return { 0, currentLine + 1 };
+            }
+
+            // 查找结束引号，支持\"转义
+            escaped = false;
+            size_t secondQuote = std::string::npos;
+
+            for (size_t i = firstQuote + 1; i < rest.length(); i++) {
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+
+                if (rest[i] == '\\') {
+                    escaped = true;
+                    continue;
+                }
+
+                if (rest[i] == '"') {
+                    secondQuote = i;
+                    break;
+                }
+            }
+
+            if (secondQuote == std::string::npos) {
+                Log(LogGrade::ERR, "Invalid plugin command format: missing closing quote");
+                MessageBoxA(NULL, "错误：plugin命令格式不正确，缺少结束引号",
+                    "错误", MB_ICONERROR | MB_OK);
+                return { 0, currentLine + 1 };
+            }
+
+            // 提取引号内的参数（带转义处理）
+            std::string rawArgs = rest.substr(firstQuote + 1, secondQuote - firstQuote - 1);
+
+            // 处理转义字符
+            std::string unescapedArgs;
+            escaped = false;
+
+            for (size_t i = 0; i < rawArgs.length(); i++) {
+                if (escaped) {
+                    if (rawArgs[i] == '"') {
+                        unescapedArgs += '"';
+                    }
+                    else if (rawArgs[i] == '\\') {
+                        unescapedArgs += '\\';
+                    }
+                    else if (rawArgs[i] == 'n') {
+                        unescapedArgs += '\n';
+                    }
+                    else if (rawArgs[i] == 't') {
+                        unescapedArgs += '\t';
+                    }
+                    else if (rawArgs[i] == 'r') {
+                        unescapedArgs += '\r';
+                    }
+                    else {
+                        unescapedArgs += rawArgs[i]; // 保留其他转义字符
+                    }
+                    escaped = false;
+                }
+                else if (rawArgs[i] == '\\') {
+                    escaped = true;
+                }
+                else {
+                    unescapedArgs += rawArgs[i];
+                }
+            }
+
+            runArgs = unescapedArgs;
+
+            // 检查引号后是否还有内容（不应该有）
+            std::string afterQuote = rest.substr(secondQuote + 1);
+            size_t nonSpacePos = afterQuote.find_first_not_of(" \t\r\n");
+            if (nonSpacePos != std::string::npos) {
+                Log(LogGrade::WARNING, "Extra characters after closing quote in plugin command: " + afterQuote.substr(nonSpacePos));
+                // 不视为错误，只记录警告
+            }
+        }
+
+        // 去除插件名中的多余空格
+        pluginName = trim(pluginName);
+
+        Log(LogGrade::DEBUG, "Plugin name: " + pluginName);
+        Log(LogGrade::DEBUG, "Plugin arguments (raw, with escapes): \"" + runArgs + "\"");
+
+        // 处理参数中的特殊路径标记：$file{} 和 $log（同样需要支持转义）
+        if (!runArgs.empty()) {
+            std::string processedArgs = "";
+            size_t pos = 0;
+            bool inEscape = false;
+
+            while (pos < runArgs.length()) {
+                if (inEscape) {
+                    // 当前字符是转义字符的一部分，直接复制
+                    processedArgs += runArgs[pos];
+                    inEscape = false;
+                    pos++;
+                    continue;
+                }
+
+                if (runArgs[pos] == '\\') {
+                    // 转义字符开始
+                    if (pos + 1 < runArgs.length()) {
+                        // 检查是否是特殊标记的一部分
+                        char nextChar = runArgs[pos + 1];
+                        if (nextChar == '$' || nextChar == '{' || nextChar == '}') {
+                            // 这些字符需要转义
+                            processedArgs += nextChar;
+                            pos += 2;
+                        }
+                        else {
+                            // 普通转义，保留反斜杠
+                            processedArgs += runArgs[pos];
+                            inEscape = true;
+                            pos++;
+                        }
+                    }
+                    else {
+                        // 行尾的反斜杠
+                        processedArgs += runArgs[pos];
+                        pos++;
+                    }
+                }
+                // 检查 $file{...}
+                else if (pos < runArgs.length() - 5 && runArgs.substr(pos, 6) == "$file{") {
+                    size_t braceStart = pos + 5; // $file{ 的 { 位置
+                    size_t braceEnd = std::string::npos;
+                    int braceDepth = 1;
+
+                    // 查找匹配的 }，支持嵌套{}
+                    for (size_t i = braceStart + 1; i < runArgs.length(); i++) {
+                        if (runArgs[i] == '\\') {
+                            i++; // 跳过转义字符
+                            continue;
+                        }
+
+                        if (runArgs[i] == '{') {
+                            braceDepth++;
+                        }
+                        else if (runArgs[i] == '}') {
+                            braceDepth--;
+                            if (braceDepth == 0) {
+                                braceEnd = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (braceEnd != std::string::npos) {
+                        // 提取相对路径（需要处理转义）
+                        std::string rawPath = runArgs.substr(braceStart + 1, braceEnd - braceStart - 1);
+                        std::string relativePath = "";
+
+                        // 去除路径中的转义
+                        for (size_t i = 0; i < rawPath.length(); i++) {
+                            if (rawPath[i] == '\\' && i + 1 < rawPath.length()) {
+                                if (rawPath[i + 1] == '\\' || rawPath[i + 1] == '{' || rawPath[i + 1] == '}') {
+                                    relativePath += rawPath[i + 1];
+                                    i++; // 跳过下一个字符
+                                }
+                                else {
+                                    relativePath += rawPath[i];
+                                }
+                            }
+                            else {
+                                relativePath += rawPath[i];
+                            }
+                        }
+
+                        // 转换为绝对路径
+                        std::string absolutePath;
+                        if (!where.empty()) {
+                            absolutePath = where + relativePath;
+
+                            // 规范化路径
+                            std::replace(absolutePath.begin(), absolutePath.end(), '/', '\\');
+
+                            // 处理 .. 目录
+                            size_t dotDotPos;
+                            while ((dotDotPos = absolutePath.find("\\..\\")) != std::string::npos) {
+                                size_t prevSlash = absolutePath.rfind('\\', dotDotPos - 1);
+                                if (prevSlash != std::string::npos) {
+                                    absolutePath = absolutePath.substr(0, prevSlash) +
+                                        absolutePath.substr(dotDotPos + 3);
+                                }
+                                else {
+                                    break;
+                                }
+                            }
+
+                            Log(LogGrade::DEBUG, "Converted $file{" + rawPath + "} to: " + absolutePath);
+                            processedArgs += absolutePath;
+                        }
+                        else {
+                            Log(LogGrade::WARNING, "Cannot convert $file{} path: 'where' path is empty");
+                            processedArgs += relativePath;
+                        }
+
+                        pos = braceEnd + 1;
+                    }
+                    else {
+                        // 没有找到结束的 }，原样保留
+                        processedArgs += runArgs.substr(pos, 6);
+                        pos += 6;
+                    }
+                }
+                // 检查 $log
+                else if (pos < runArgs.length() - 3 && runArgs.substr(pos, 4) == "$log") {
+                    // 转换为日志文件的绝对路径
+                    std::string logPath;
+
+                    // 获取当前工作目录
+                    char buffer[MAX_PATH];
+                    if (GetCurrentDirectoryA(MAX_PATH, buffer) != 0) {
+                        logPath = std::string(buffer) + "\\pvn_engine.log";
+                        Log(LogGrade::DEBUG, "Converted $log to: " + logPath);
+                        processedArgs += logPath;
+                    }
+                    else {
+                        Log(LogGrade::WARNING, "Failed to get current directory for $log conversion");
+                        processedArgs += "pvn_engine.log";
+                    }
+
+                    pos += 4;
+                }
+                // 处理变量占位符 ${var}
+                else if (pos < runArgs.length() - 2 && runArgs.substr(pos, 2) == "${") {
+                    size_t varEnd = std::string::npos;
+                    int braceDepth = 1;
+
+                    // 查找匹配的 }，支持嵌套{}
+                    for (size_t i = pos + 2; i < runArgs.length(); i++) {
+                        if (runArgs[i] == '\\') {
+                            i++; // 跳过转义字符
+                            continue;
+                        }
+
+                        if (runArgs[i] == '{') {
+                            braceDepth++;
+                        }
+                        else if (runArgs[i] == '}') {
+                            braceDepth--;
+                            if (braceDepth == 0) {
+                                varEnd = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (varEnd != std::string::npos) {
+                        std::string varName = runArgs.substr(pos + 2, varEnd - pos - 2);
+
+                        // 先检查字符串变量
+                        std::string stringValue = gameState.getStringVar(varName);
+                        if (!stringValue.empty()) {
+                            processedArgs += stringValue;
+                        }
+                        else {
+                            // 检查整数变量
+                            int intValue = gameState.getVar(varName);
+                            processedArgs += std::to_string(intValue);
+                        }
+
+                        pos = varEnd + 1;
+                    }
+                    else {
+                        // 没有找到结束的 }，原样保留
+                        processedArgs += runArgs[pos];
+                        pos++;
+                    }
+                }
+                else {
+                    // 普通字符，直接复制
+                    processedArgs += runArgs[pos];
+                    pos++;
+                }
+            }
+
+            runArgs = processedArgs;
+            Log(LogGrade::DEBUG, "Plugin arguments (fully processed): \"" + runArgs + "\"");
+        }
+
+        // 执行插件
+        bool success = runPlugin(pluginName, runArgs);
+
+        if (success) {
+            Log(LogGrade::INFO, "Plugin executed successfully: " + pluginName);
+        }
+        else {
+            Log(LogGrade::ERR, "Failed to execute plugin: " + pluginName);
+        }
+
+        // 继续执行下一行
+        return { 0, currentLine + 1 };
+    }    // ==================== 插件依赖声明命令 ====================
+    if (cmd == "use" || cmd == "USE") {
+        Log(LogGrade::INFO, "USE command detected at line " + std::to_string(currentLine + 1));
+
+        std::string pluginName, pluginVersion = "";
+
+        // 读取插件名
+        if (!(ss >> pluginName)) {
+            Log(LogGrade::ERR, "Invalid use command format: missing plugin name");
+            MessageBoxA(NULL, "错误：use命令格式不正确，缺少插件名",
+                "错误", MB_ICONERROR | MB_OK);
+            return { 0, currentLine + 1 };
+        }
+
+        // 检查是否有版本号（可选）
+        if (ss >> pluginVersion) {
+            // 版本号可以有空格，读取剩余部分
+            std::string remaining;
+            getline(ss, remaining);
+            if (!remaining.empty() && remaining[0] == ' ') {
+                remaining = remaining.substr(1);
+            }
+            if (!remaining.empty()) {
+                pluginVersion += " " + remaining;
+            }
+            Log(LogGrade::DEBUG, "Plugin version specified: " + pluginVersion);
+        }
+
+        // 检查插件是否存在
+        std::string pluginDir = "Plugins\\" + pluginName;
+        if (!fs::exists(pluginDir)) {
+            Log(LogGrade::ERR, "Plugin not found: " + pluginName);
+            vnout("错误：所需的插件 '" + pluginName + "' 未安装", 0.5, red, true);
+            std::cout << std::endl;
+
+            // 显示插件安装提示
+            std::cout << "==============================" << std::endl;
+            std::cout << "插件 '" << pluginName << "' 未安装" << std::endl;
+            std::cout << "请执行以下操作：" << std::endl;
+            std::cout << "1. 下载插件到 Plugins/" << pluginName << "/ 目录" << std::endl;
+            std::cout << "2. 确保目录中有 about.cfg 配置文件" << std::endl;
+            std::cout << "3. 重新启动游戏" << std::endl;
+            std::cout << "==============================" << std::endl;
+            std::cout << std::endl << "按任意键返回主菜单..." << std::endl;
+            getKeyName();
+            return { -1, 0 }; // 返回主菜单
+        }
+
+        // 检查about.cfg文件
+        std::string aboutFilePath = pluginDir + "\\about.cfg";
+        if (!fs::exists(aboutFilePath)) {
+            Log(LogGrade::ERR, "Plugin configuration file not found: " + pluginName);
+            vnout("错误：插件 '" + pluginName + "' 配置文件缺失", 0.5, red, true);
+            std::cout << std::endl << "按任意键继续..." << std::endl;
+            getKeyName();
+            return { 0, currentLine + 1 };
+        }
+
+        // 读取插件配置检查版本（如果需要）
+        if (!pluginVersion.empty()) {
+            std::ifstream aboutFile(aboutFilePath);
+            if (aboutFile.is_open()) {
+                std::string fileVersion = "";
+                std::string line;
+
+                while (std::getline(aboutFile, line)) {
+                    std::string trimmedLine = trim(line);
+                    if (trimmedLine.empty() || trimmedLine[0] == '#') {
+                        continue;
+                    }
+
+                    size_t equalsPos = trimmedLine.find('=');
+                    if (equalsPos != std::string::npos) {
+                        std::string key = trim(trimmedLine.substr(0, equalsPos));
+                        std::string value = trim(trimmedLine.substr(equalsPos + 1));
+
+                        // 去除引号
+                        if (value.length() >= 2 &&
+                            ((value.front() == '"' && value.back() == '"') ||
+                                (value.front() == '\'' && value.back() == '\''))) {
+                            value = value.substr(1, value.length() - 2);
+                        }
+
+                        if (key == "Version") {
+                            fileVersion = value;
+                            break;
+                        }
+                    }
+                }
+                aboutFile.close();
+
+                if (!fileVersion.empty()) {
+                    // 简单的版本号匹配（精确匹配）
+                    if (fileVersion != pluginVersion) {
+                        Log(LogGrade::WARNING, "Plugin version mismatch: required=" + pluginVersion +
+                            ", installed=" + fileVersion);
+
+                        std::cout << std::endl;
+                        std::cout << "==============================" << std::endl;
+                        std::cout << "插件版本警告" << std::endl;
+                        std::cout << "脚本需要: " << pluginName << " v" << pluginVersion << std::endl;
+                        std::cout << "已安装: " << pluginName << " v" << fileVersion << std::endl;
+                        std::cout << std::endl;
+
+                        // 简单的版本号比较（仅支持数字版本号如 1.0.0）
+                        try {
+                            std::stringstream requiredSS(pluginVersion);
+                            std::stringstream installedSS(fileVersion);
+                            std::string requiredPart, installedPart;
+                            bool versionOk = true;
+
+                            while (std::getline(requiredSS, requiredPart, '.') &&
+                                std::getline(installedSS, installedPart, '.')) {
+                                try {
+                                    int reqNum = std::stoi(requiredPart);
+                                    int instNum = std::stoi(installedPart);
+
+                                    if (instNum < reqNum) {
+                                        versionOk = false;
+                                        break;
+                                    }
+                                    else if (instNum > reqNum) {
+                                        break; // 主版本号更高，允许继续
+                                    }
+                                }
+                                catch (...) {
+                                    // 版本号不是纯数字，使用精确匹配
+                                    if (fileVersion != pluginVersion) {
+                                        versionOk = false;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (!versionOk) {
+                                std::cout << "警告：插件版本可能不兼容" << std::endl;
+                                std::cout << "建议安装 " << pluginName << " v" << pluginVersion << std::endl;
+                            }
+                            else {
+                                std::cout << "版本检查通过" << std::endl;
+                            }
+                        }
+                        catch (...) {
+                            std::cout << "警告：无法比较版本号" << std::endl;
+                        }
+
+                        std::cout << "==============================" << std::endl;
+                        std::cout << std::endl << "按任意键继续（或按ESC返回主菜单）..." << std::endl;
+
+                        std::string key = getKeyName();
+                        if (key == "ESC") {
+                            return { -1, 0 }; // 返回主菜单
+                        }
+                    }
+                }
+            }
+        }
+
+        // 记录插件依赖
+        Log(LogGrade::INFO, "Plugin dependency registered: " + pluginName +
+            (pluginVersion.empty() ? "" : " v" + pluginVersion));
+
+        // 继续执行下一行
+        return { 0, currentLine + 1 };
+    }
     //欢迎来pull request（喜）
     //新命令开发指南见ReadMe/下的文档
 

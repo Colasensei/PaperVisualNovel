@@ -8,6 +8,17 @@
 #include <fstream>
 #include <iostream>
 #include <set>
+
+// 辅助函数：去除字符串两端的空白字符
+std::string trim(const std::string& str) {
+    size_t first = str.find_first_not_of(" \t");
+    Log(LogGrade::DEBUG, "Trimming string: " + str);
+    if (std::string::npos == first) {
+        return "";
+    }
+    size_t last = str.find_last_not_of(" \t");
+    return str.substr(first, (last - first + 1));
+}
 // ==================== 存档管理 ====================
 
 bool saveGame(const std::string& scriptPath, size_t currentLine,
@@ -543,18 +554,273 @@ std::string getGameFolderName(const std::string& fullPath) {
     return path.filename().string();
 }
 
+
+// ==================== 插件管理 ====================
+
+std::vector<PluginInfo> readInstalledPlugins() {
+    std::vector<PluginInfo> plugins;
+    std::string pluginsDir = "Plugins";
+
+    Log(LogGrade::INFO, "Reading installed plugins from: " + pluginsDir);
+
+    // 检查Plugins目录是否存在
+    if (!fs::exists(pluginsDir)) {
+        Log(LogGrade::WARNING, "Plugins directory does not exist: " + pluginsDir);
+        return plugins;  // 返回空列表
+    }
+
+    // 遍历Plugins目录下的所有文件夹
+    try {
+        for (const auto& entry : fs::directory_iterator(pluginsDir)) {
+            if (entry.is_directory()) {
+                std::string pluginName = entry.path().filename().string();
+                std::string aboutFilePath = entry.path().string() + "\\about.cfg";
+
+                Log(LogGrade::DEBUG, "Checking plugin: " + pluginName);
+
+                // 检查about.cfg文件是否存在
+                if (fs::exists(aboutFilePath)) {
+                    PluginInfo plugin;
+                    plugin.name = pluginName;
+
+                    // 读取about.cfg文件
+                    std::ifstream aboutFile(aboutFilePath);
+                    if (aboutFile.is_open()) {
+                        std::string line;
+                        while (std::getline(aboutFile, line)) {
+                            // 跳过空行和注释行
+                            std::string trimmedLine = trim(line);
+                            if (trimmedLine.empty() || trimmedLine[0] == '#') {
+                                continue;
+                            }
+
+                            // 查找等号位置
+                            size_t equalsPos = trimmedLine.find('=');
+                            if (equalsPos == std::string::npos) {
+                                continue;
+                            }
+
+                            // 提取键和值
+                            std::string key = trim(trimmedLine.substr(0, equalsPos));
+                            std::string value = trim(trimmedLine.substr(equalsPos + 1));
+
+                            // 去除可能的引号
+                            if (value.length() >= 2 &&
+                                ((value.front() == '"' && value.back() == '"') ||
+                                    (value.front() == '\'' && value.back() == '\''))) {
+                                value = value.substr(1, value.length() - 2);
+                            }
+
+                            // 根据键名存储值
+                            if (key == "RunCommand") {
+                                plugin.runCommand = value;
+                            }
+                            else if (key == "RunFile") {
+                                plugin.runFile = value;
+                            }
+                            else if (key == "Description") {
+                                plugin.description = value;
+                            }
+                            else if (key == "Version") {
+                                plugin.version = value;
+                            }
+                            else if (key == "Author") {
+                                plugin.author = value;
+                            }
+                        }
+                        aboutFile.close();
+
+                        // 验证必要的字段
+                        if (!plugin.runCommand.empty() && !plugin.runFile.empty()) {
+                            plugins.push_back(plugin);
+                            Log(LogGrade::INFO, "Plugin loaded: " + pluginName);
+                        }
+                        else {
+                            Log(LogGrade::WARNING, "Plugin " + pluginName + " missing required fields (RunCommand or RunFile)");
+                        }
+                    }
+                    else {
+                        Log(LogGrade::WARNING, "Cannot open about.cfg for plugin: " + pluginName);
+                    }
+                }
+                else {
+                    Log(LogGrade::WARNING, "Plugin " + pluginName + " missing about.cfg file");
+                }
+            }
+        }
+    }
+    catch (const std::exception& e) {
+        Log(LogGrade::ERR, "Error reading plugins directory: " + std::string(e.what()));
+        MessageBoxA(NULL, "读取插件目录时出错", "错误", MB_ICONERROR | MB_OK);
+    }
+
+    Log(LogGrade::INFO, "Total plugins found: " + std::to_string(plugins.size()));
+    return plugins;
+}
+
+bool hasPlugin(const std::string& pluginName) {
+    std::string pluginDir = "Plugins\\" + pluginName;
+    return fs::exists(pluginDir);
+}
+
+std::string getPluginFullCommand(const PluginInfo& plugin) {
+    std::string pluginPath = "Plugins\\" + plugin.name + "\\";
+
+    // 构建完整命令路径
+    std::string fullCommand = plugin.runCommand;
+
+    // 如果运行命令不包含空格且不是绝对路径，可能是相对路径
+    if (plugin.runCommand.find(' ') == std::string::npos &&
+        plugin.runCommand.find('\\') == std::string::npos &&
+        plugin.runCommand.find('/') == std::string::npos) {
+        // 可能是可执行文件，在插件目录中查找
+        std::string possibleExe = pluginPath + plugin.runCommand + ".exe";
+        if (fs::exists(possibleExe)) {
+            fullCommand = possibleExe;
+        }
+    }
+
+    // 添加运行文件
+    fullCommand += " " + pluginPath + plugin.runFile;
+
+    return fullCommand;
+}
+
+
+// ==================== 插件运行 ====================
+
+bool runPlugin(const std::string& pluginName, const std::string& runArgs) {
+    Log(LogGrade::INFO, "Attempting to run plugin: " + pluginName);
+
+    // 构建插件目录路径
+    std::string pluginDir = "Plugins\\" + pluginName;
+
+    // 检查插件目录是否存在
+    if (!fs::exists(pluginDir)) {
+        Log(LogGrade::ERR, "Plugin directory not found: " + pluginDir);
+        MessageBoxA(NULL, ("错误：插件目录不存在 - " + pluginName).c_str(),
+            "错误", MB_ICONERROR | MB_OK);
+        return false;
+    }
+
+    // 检查about.cfg文件是否存在
+    std::string aboutFilePath = pluginDir + "\\about.cfg";
+    if (!fs::exists(aboutFilePath)) {
+        Log(LogGrade::ERR, "about.cfg file not found for plugin: " + pluginName);
+        MessageBoxA(NULL, ("错误：插件配置文件缺失 - " + pluginName).c_str(),
+            "错误", MB_ICONERROR | MB_OK);
+        return false;
+    }
+
+    // 读取插件配置
+    PluginInfo pluginInfo;
+    pluginInfo.name = pluginName;
+
+    std::ifstream aboutFile(aboutFilePath);
+    if (!aboutFile.is_open()) {
+        Log(LogGrade::ERR, "Cannot open about.cfg for plugin: " + pluginName);
+        MessageBoxA(NULL, ("错误：无法读取插件配置 - " + pluginName).c_str(),
+            "错误", MB_ICONERROR | MB_OK);
+        return false;
+    }
+
+    std::string line;
+    bool hasRunCommand = false;
+    bool hasRunFile = false;
+
+    while (std::getline(aboutFile, line)) {
+        // 跳过空行和注释
+        std::string trimmedLine = trim(line);
+        if (trimmedLine.empty() || trimmedLine[0] == '#') {
+            continue;
+        }
+
+        // 解析键值对
+        size_t equalsPos = trimmedLine.find('=');
+        if (equalsPos == std::string::npos) {
+            continue;
+        }
+
+        std::string key = trim(trimmedLine.substr(0, equalsPos));
+        std::string value = trim(trimmedLine.substr(equalsPos + 1));
+
+        // 去除引号
+        if (value.length() >= 2 &&
+            ((value.front() == '"' && value.back() == '"') ||
+                (value.front() == '\'' && value.back() == '\''))) {
+            value = value.substr(1, value.length() - 2);
+        }
+
+        // 提取必要信息
+        if (key == "RunCommand") {
+            pluginInfo.runCommand = value;
+            hasRunCommand = true;
+        }
+        else if (key == "RunFile") {
+            pluginInfo.runFile = value;
+            hasRunFile = true;
+        }
+        else if (key == "Description") {
+            pluginInfo.description = value;
+        }
+    }
+    aboutFile.close();
+
+    // 检查必要配置是否存在
+    if (!hasRunCommand) {
+        Log(LogGrade::ERR, "Plugin " + pluginName + " missing RunCommand in about.cfg");
+        MessageBoxA(NULL, ("错误：插件配置缺少RunCommand - " + pluginName).c_str(),
+            "错误", MB_ICONERROR | MB_OK);
+        return false;
+    }
+
+    if (!hasRunFile) {
+        Log(LogGrade::ERR, "Plugin " + pluginName + " missing RunFile in about.cfg");
+        MessageBoxA(NULL, ("错误：插件配置缺少RunFile - " + pluginName).c_str(),
+            "错误", MB_ICONERROR | MB_OK);
+        return false;
+    }
+
+    // 构建完整的运行命令
+    std::string fullCommand;
+
+    // 检查RunFile是否是相对路径
+    fs::path runFilePath(pluginInfo.runFile);
+    if (runFilePath.is_relative()) {
+        // 如果是相对路径，添加插件目录前缀
+        fullCommand = pluginInfo.runCommand + " " + pluginDir + "\\" + pluginInfo.runFile;
+    }
+    else {
+        // 如果是绝对路径，直接使用
+        fullCommand = pluginInfo.runCommand + " " + pluginInfo.runFile;
+    }
+
+    // 添加运行参数
+    if (!runArgs.empty()) {
+        fullCommand += " " + runArgs;
+    }
+
+    Log(LogGrade::INFO, "Running plugin command: " + fullCommand);
+
+    // 执行命令
+    int result = system(fullCommand.c_str());
+
+    if (result == 0) {
+        Log(LogGrade::INFO, "Plugin executed successfully: " + pluginName);
+        return true;
+    }
+    else {
+        Log(LogGrade::ERR, "Plugin execution failed with code " + std::to_string(result) +
+            ": " + pluginName);
+        MessageBoxA(NULL, ("插件执行失败，错误代码: " + std::to_string(result)).c_str(),
+            "错误", MB_ICONERROR | MB_OK);
+        return false;
+    }
+}
+
 // ==================== 配置文件 ====================
 
-// 辅助函数：去除字符串两端的空白字符
-std::string trim(const std::string& str) {
-    size_t first = str.find_first_not_of(" \t");
-    Log(LogGrade::DEBUG, "Trimming string: " + str);
-    if (std::string::npos == first) {
-        return "";
-    }
-    size_t last = str.find_last_not_of(" \t");
-    return str.substr(first, (last - first + 1));
-}
+
 
 std::string readCfg(const std::string& key) {
     const std::string filename = "data.cfg";
