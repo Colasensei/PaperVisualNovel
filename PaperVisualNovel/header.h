@@ -24,6 +24,7 @@
 #include <shellapi.h>
 
 #include "gamestate.h"
+#include "gum_wrapper.h"
 
 using namespace std;
 namespace fs = std::filesystem;

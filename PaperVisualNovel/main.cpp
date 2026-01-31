@@ -19,7 +19,12 @@ int main() {
         DebugLogEnabled=1;
     }
 
-
+    if (!gum::GumWrapper::is_available()) {
+        MessageBoxA(NULL, "警告：Gum库不可用，即将进行安装。完毕后请重新启动程序。",
+                   "警告", MB_ICONWARNING | MB_OK);
+        system("winget install charmbracelet.gum");
+        return 1;
+    }
 
     Log(LogGrade::INFO, "\n\n----------------------------------------");
     Log(LogGrade::INFO, "The program is running...");

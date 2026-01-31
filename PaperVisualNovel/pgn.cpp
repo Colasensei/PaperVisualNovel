@@ -132,13 +132,36 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
 void Run() {
 	Log(LogGrade::INFO, "Running main menu...");
     system("cls");
+        printf("%s\n", "   ___  ______  __");
+        printf("%s\n", "  / _ \\/ ___/ |/ /");
+        printf("%s\n", " / ___/ (_ /    / ");
+        printf("%s\n", "/_/   \\___/_/|_/  ");
+        printf("%s\n", "                  ");
+    
     vnout("PaperVisualNovel", 0.8, white, true);
     vnout("千页小说引擎", 0.8, white, true);
     vnout("ver Beta1.0", 0.8, white, true);
-    vnout("1.加载游戏 2.教程 3.关于 4.退出", 0.8, yellow, true);
+    cout << endl;
     Log(LogGrade::INFO, "Running main menu Done");
     while (true) {
-        string op = getKeyName();
+        std::vector<std::string> menu_options = {
+         "1. 加载游戏",
+         "2. 教程",
+         "3. 关于",
+         "4. 退出"
+        };
+        std::string selected = gum::GumWrapper::choose(
+            menu_options
+        );
+        std::string op = "";
+        if (!selected.empty()) {
+            // 提取第一个字符作为选项（"1. 加载游戏" -> "1"）
+            op = selected.substr(0, 1);
+
+        }
+        else {
+            cout << "未选择任何选项" << endl;
+        }
         Log(LogGrade::INFO, "Running main menu op: " + op);
     if (op == "1") {
     string basePath = "Novel\\";
@@ -355,6 +378,18 @@ else if (op == "2") {
         else if (op == "3") {
             Log(LogGrade::INFO, "About selected");
             system("cls");
+            printf("%s\n", "   ___                    ");
+            printf("%s\n", "  / _ \\___ ____  ___ ____ ");
+            printf("%s\n", " / ___/ _ `/ _ \\/ -_) __/ ");
+            printf("%s\n", "/_/   \\_,_/ .__/\\__/_/    ");
+            printf("%s\n", "  _   ___/_/            __");
+            printf("%s\n", " | | / (_)__ __ _____ _/ /");
+            printf("%s\n", " | |/ / (_-</ // / _ `/ / ");
+            printf("%s\n", " |___/_/___/\\_,_/\\_,_/_/  ");
+            printf("%s\n", "  / |/ /__ _  _____ / /   ");
+            printf("%s\n", " /    / _ \\ |/ / -_) /    ");
+            printf("%s\n", "/_/|_/\\___/___/\\__/_/     ");
+            printf("%s\n", "                          ");
             cout << "关于 PaperVisualNovel" << endl;
             cout << "======================" << endl;
             cout << "PaperVisualNovel 是一个用 C++ 编写的视觉小说引擎。" << endl;

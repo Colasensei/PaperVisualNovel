@@ -136,6 +136,7 @@
     <ClInclude Include="condition.h" />
     <ClInclude Include="fileutils.h" />
     <ClInclude Include="gamestate.h" />
+    <ClInclude Include="gum_wrapper.h" />
     <ClInclude Include="header.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="ui.h" />
