@@ -129,7 +129,9 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
 
 // 实现 Run() 函数
 void Run() {
-    Log(LogGrade::INFO, "Running main menu...");
+    
+    while (true) {
+        Log(LogGrade::INFO, "Running main menu...");
     system("cls");
     printf("%s\n", "   ___  ______  __");
     printf("%s\n", "  / _ \\/ ___/ |/ /");
@@ -142,7 +144,6 @@ void Run() {
     vnout(VERSION, 0.8, white, true);
     cout << endl;
     Log(LogGrade::INFO, "Running main menu Done");
-    while (true) {
         std::vector<std::string> menu_options = {
          "1. 加载游戏",
          "2. 教程",
@@ -268,7 +269,8 @@ void Run() {
                 int choice_num;
                 Log(LogGrade::DEBUG, "menu choice_str: " + choice_str);
                 if (choice_str == "ESC") {
-                    Run();
+                    Log(LogGrade::INFO, "Game choose menu exit.");
+                    continue;
                     return;
                 }
 
@@ -289,7 +291,7 @@ void Run() {
                 if (!fs::exists(full_path)) {
                     Log(LogGrade::ERR, "Game file not found");
                     MessageBoxA(NULL, "错误：找不到游戏文件", "错误", MB_ICONERROR | MB_OK);
-                    Run();
+                    goto getKeyforGameMenu;
                     return;
                 }
 
@@ -392,8 +394,7 @@ void Run() {
                     // 没有存档，直接开始新游戏
                     RunPgn(where, file);
                 }
-
-                Run();
+                continue;
             }
         }
         else if (op == "2") {
@@ -411,7 +412,7 @@ void Run() {
             }
 
             system("cls");
-            Run();
+            continue;
         }
         else if (op == "3") {
             Log(LogGrade::INFO, "Plugin management selected");
@@ -425,7 +426,7 @@ void Run() {
                 std::cout << "当前没有安装任何插件。" << std::endl;
                 std::cout << "==============================" << std::endl;
                 system("pause");
-                Run();
+                continue;
             }
             else {
                 system("cls");
@@ -458,7 +459,7 @@ void Run() {
                     std::cout << std::endl;
                 }
                 system("pause");
-                Run();
+                continue;
             }
 
         }
@@ -490,7 +491,7 @@ void Run() {
             cout << endl << "按任意键返回..." << endl;
             getKeyName();
             Log(LogGrade::INFO, "Return to main menu");
-            Run();
+            continue;
         }
         else if (op == "5") {
 

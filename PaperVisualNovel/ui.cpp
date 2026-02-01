@@ -319,8 +319,7 @@ int operate() {
             }
             else if (op2 == "3") {
                 Log(LogGrade::INFO, "Quit game without saving");
-                Run();
-                return 0;
+                return 1;
             }
             else {
                 // 无效输入，默认继续游戏

@@ -3,7 +3,7 @@
 #ifndef PGN_HEADER_H
 #define PGN_HEADER_H
 
-#define VERSION "Beta 1.2.0"
+#define VERSION "Beta 1.2.1"
 
 //color
 #define ANSI_WHITE "\033[37m"
