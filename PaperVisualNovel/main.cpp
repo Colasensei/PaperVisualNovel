@@ -14,6 +14,10 @@ CurrentGameInfo g_currentGameInfo = { "", 0, nullptr };
  * @brief 主函数
  */
 int main(int argc, char* argv[]) {
+
+    Log(LogGrade::INFO, "\n\n----------------------------------------");
+    Log(LogGrade::INFO, "The program is running...");
+
     if (readCfg("DebugLogEnabled") == "1")
     {
         DebugLogEnabled=1;
@@ -29,8 +33,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    Log(LogGrade::INFO, "\n\n----------------------------------------");
-    Log(LogGrade::INFO, "The program is running...");
     // 初始化随机数种子
     srand(static_cast<unsigned int>(time(nullptr)));
     Log(LogGrade::DEBUG, "Random seed initialized.");
