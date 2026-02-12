@@ -1,110 +1,114 @@
-// main.cpp
+ï»¿// main.cpp
 #include "header.h"
 #include "gamestate.h"
 #include "fileutils.h"
 #include "ui.h"
-// È«¾Ö±äÁ¿¶¨Òå
+#include <chrono>
+
+// å…¨å±€å˜é‡å®šä¹‰
 int quantity = 0;
-bool DebugLogEnabled = false;  // ÊÇ·ñÆôÓÃµ÷ÊÔÈÕÖ¾
+bool DebugLogEnabled = false;  // æ˜¯å¦å¯ç”¨è°ƒè¯•æ—¥å¿—
 
 CurrentGameInfo g_currentGameInfo = { "", 0, nullptr };
 
-
 /**
- * @brief Ö÷º¯Êı
+ * @brief ä¸»å‡½æ•°
  */
 int main(int argc, char* argv[]) {
 
-    Log(LogGrade::INFO, "\n\n----------------------------------------");
-    Log(LogGrade::INFO, "The program is running...");
+    auto programStartTime = std::chrono::high_resolution_clock::now();
+
+    Log(LogGrade::INFO, LogCode::GAME_START, "\n\n----------------------------------------");
+    Log(LogGrade::INFO, LogCode::GAME_START, "The program is running...");
 
     if (readCfg("DebugLogEnabled") == "1")
     {
-        DebugLogEnabled=1;
+        DebugLogEnabled = 1;
+        Log(LogGrade::INFO, LogCode::GAME_START, "Debug logging enabled");
     }
 
     if (!gum::GumWrapper::is_available()) {
-        Log(LogGrade::ERR, "Gum library is not available.");
-        MessageBoxA(NULL, "¾¯¸æ£ºGum¿â²»¿ÉÓÃ£¬¼´½«½øĞĞ°²×°¡£Íê±ÏºóÇëÖØĞÂÆô¶¯³ÌĞò¡£",
-                   "¾¯¸æ", MB_ICONWARNING | MB_OK);
+        Log(LogGrade::ERR, LogCode::PLUGIN_MISSING, "Gum library is not available.");
+        MessageBoxA(NULL, "è­¦å‘Šï¼šGumåº“ä¸å¯ç”¨ï¼Œå³å°†è¿›è¡Œå®‰è£…ã€‚å®Œæ¯•åè¯·é‡æ–°å¯åŠ¨ç¨‹åºã€‚",
+            "è­¦å‘Š", MB_ICONWARNING | MB_OK);
         system("winget install charmbracelet.gum");
-        cout<<"°²×°Íê±Ï£¬ÇëÖØĞÂÆô¶¯³ÌĞò¡£";
+        cout << "å®‰è£…å®Œæ¯•ï¼Œè¯·é‡æ–°å¯åŠ¨ç¨‹åºã€‚";
         Sleep(5000);
         return 1;
     }
 
-    // ³õÊ¼»¯Ëæ»úÊıÖÖ×Ó
+    // åˆå§‹åŒ–éšæœºæ•°ç§å­
     srand(static_cast<unsigned int>(time(nullptr)));
-    Log(LogGrade::DEBUG, "Random seed initialized.");
+    Log(LogGrade::DEBUG, LogCode::GAME_START, "Random seed initialized.");
 
-    
-    // ÉèÖÃ¿ØÖÆÌ¨±êÌâ
+    // è®¾ç½®æ§åˆ¶å°æ ‡é¢˜
     SetConsoleTitleA("Paper Visual Novel");
-    Log(LogGrade::DEBUG, "Console title set.");
+    Log(LogGrade::DEBUG, LogCode::GAME_START, "Console title set.");
 
-    // ´¦ÀíÃüÁîĞĞ²ÎÊı
+    // å¤„ç†å‘½ä»¤è¡Œå‚æ•°
     if (argc > 1) {
-        // ÓĞÃüÁîĞĞ²ÎÊı£¬Ö±½ÓÔËĞĞÖ¸¶¨µÄPGNÎÄ¼ş
         std::string filePath = argv[1];
-        Log(LogGrade::INFO, "Command line argument detected: " + filePath);
+        Log(LogGrade::INFO, LogCode::GAME_START, "Command line argument detected: " + filePath);
 
-        // ¼ì²éÎÄ¼şÊÇ·ñ´æÔÚ
         if (!fs::exists(filePath)) {
-            MessageBoxA(NULL, "¾¯¸æ£ºÖ¸¶¨µÄÎÄ¼ş²»´æÔÚ",
-                       "¾¯¸æ", MB_ICONWARNING | MB_OK);
-            Log(LogGrade::ERR, "File not found: " + filePath);
+            MessageBoxA(NULL, "è­¦å‘Šï¼šæŒ‡å®šçš„æ–‡ä»¶ä¸å­˜åœ¨",
+                "è­¦å‘Š", MB_ICONWARNING | MB_OK);
+            Log(LogGrade::ERR, LogCode::FILE_NOT_FOUND, "File not found: " + filePath);
             return 1;
         }
 
-        // ÔËĞĞÖ¸¶¨µÄPGNÎÄ¼ş
         string where = fs::path(filePath).parent_path().string() + "\\";
         string file = fs::path(filePath).filename().string();
         RunPgn(where, file);
         return 0;
     }
 
-    // Ã»ÓĞÃüÁîĞĞ²ÎÊı£¬Õı³£Æô¶¯Á÷³Ì
-    Log(LogGrade::INFO, "No command line arguments, starting normal flow");
-    
+    Log(LogGrade::INFO, LogCode::GAME_START, "No command line arguments, starting normal flow");
+
     if (!(readCfg("AutoRun") == "0"))
     {
         string pgn = readCfg("AutoRun");
-        string where = "Novel\\"+pgn+"\\";
-        string file = pgn+".pgn";
+        string where = "Novel\\" + pgn + "\\";
+        string file = pgn + ".pgn";
         if (!fs::exists(where + file))
         {
-            MessageBoxA(NULL, "¾¯¸æ£º×Ô¶¯ÔËĞĞÎÄ¼ş²»´æÔÚ",
-                       "¾¯¸æ", MB_ICONWARNING | MB_OK);
-            Log(LogGrade::ERR, "File not found: " + where + file);
+            MessageBoxA(NULL, "è­¦å‘Šï¼šè‡ªåŠ¨è¿è¡Œæ–‡ä»¶ä¸å­˜åœ¨",
+                "è­¦å‘Š", MB_ICONWARNING | MB_OK);
+            Log(LogGrade::ERR, LogCode::FILE_NOT_FOUND, "File not found: " + where + file);
             return 1;
         }
         RunPgn(where, file);
         return 0;
     }
 
-    // ¼ì²éÊÇ·ñÎªÊ×´ÎÔËĞĞ
     string firstRun = readCfg("FirstRunFlag");
-    Log(LogGrade::DEBUG, "First run flag checked.");
-    if (firstRun=="true"||firstRun=="1") {
-        Log(LogGrade::DEBUG, "First run detected.");
+    Log(LogGrade::DEBUG, LogCode::GAME_START, "First run flag checked.");
+
+    if (firstRun == "true" || firstRun == "1") {
+        Log(LogGrade::DEBUG, LogCode::GAME_START, "First run detected.");
         string where = "Novel\\HelloWorld\\";
         string file = "HelloWorld.pgn";
-        
-        if (fs::exists(where + file)) {
-			Log(LogGrade::DEBUG, "Initial tutorial file found.");
-            updateFirstRunFlag(false);
 
+        if (fs::exists(where + file)) {
+            Log(LogGrade::DEBUG, LogCode::GAME_LOADED, "Initial tutorial file found.");
+            updateFirstRunFlag(false);
             RunPgn(where, file);
-        } else {
-            Log(LogGrade::ERR, "Initial tutorial file not found.");
-            MessageBoxA(NULL, "¾¯¸æ£ºÕÒ²»µ½³õÊ¼½Ì³ÌÎÄ¼ş", 
-                       "¾¯¸æ", MB_ICONWARNING | MB_OK);
         }
-        
-        
+        else {
+            Log(LogGrade::ERR, LogCode::FILE_NOT_FOUND, "Initial tutorial file not found.");
+            MessageBoxA(NULL, "è­¦å‘Šï¼šæ‰¾ä¸åˆ°åˆå§‹æ•™ç¨‹æ–‡ä»¶",
+                "è­¦å‘Š", MB_ICONWARNING | MB_OK);
+        }
     }
-    // ÔËĞĞÖ÷²Ëµ¥
-    Log(LogGrade::INFO, "Running main menu...");
+
+    Log(LogGrade::INFO, LogCode::GAME_START, "Running main menu...");
     Run();
+
+    auto programEndTime = std::chrono::high_resolution_clock::now();
+    auto programTotalTime = std::chrono::duration_cast<std::chrono::milliseconds>(programEndTime - programStartTime).count();
+
+    Log(LogGrade::INFO, LogCode::GAME_START,
+        "Program terminated. Total execution time: " + std::to_string(programTotalTime) + "ms");
+
     return 0;
 }

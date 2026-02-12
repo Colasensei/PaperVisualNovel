@@ -1,4 +1,4 @@
-// fileutils.cpp
+ï»¿// fileutils.cpp
 #include "fileutils.h"
 #include "ui.h"
 #include <Windows.h>
@@ -8,40 +8,54 @@
 #include <fstream>
 #include <iostream>
 #include <set>
+#include <map>
 
-// ¸¨Öúº¯Êı£ºÈ¥³ı×Ö·û´®Á½¶ËµÄ¿Õ°××Ö·û
+// è¾…åŠ©å‡½æ•°ï¼šå»é™¤å­—ç¬¦ä¸²ä¸¤ç«¯çš„ç©ºç™½å­—ç¬¦
 std::string trim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t");
-    Log(LogGrade::DEBUG, "Trimming string: " + str);
+    Log(LogGrade::DEBUG, LogCode::PERFORMANCE, "Trimming string: " + str);
     if (std::string::npos == first) {
         return "";
     }
     size_t last = str.find_last_not_of(" \t");
     return str.substr(first, (last - first + 1));
 }
-// ==================== ´æµµ¹ÜÀí ====================
+
+// ==================== å­˜æ¡£ç®¡ç† ====================
 
 bool saveGame(const std::string& scriptPath, size_t currentLine,
-              const GameState& gameState, const std::string& saveName) {
-    // ¹¹½¨´æµµÂ·¾¶
+    const GameState& gameState, const std::string& saveName) {
+    auto saveStartTime = std::chrono::high_resolution_clock::now();
+
+    Log(LogGrade::INFO, LogCode::GAME_SAVED,
+        "Attempting to save game: " + scriptPath + " (save name: " + saveName + ")");
+
+    // æ„å»ºå­˜æ¡£è·¯å¾„
     fs::path scriptFilePath(scriptPath);
     fs::path saveDir = scriptFilePath.parent_path() / "saves";
 
-    // ´´½¨´æµµÄ¿Â¼£¨Èç¹û²»´æÔÚ£©
+    // åˆ›å»ºå­˜æ¡£ç›®å½•ï¼ˆå¦‚æœä¸å­˜åœ¨ï¼‰
     if (!fs::exists(saveDir)) {
-        fs::create_directory(saveDir);
+        Log(LogGrade::DEBUG, LogCode::GAME_SAVED,
+            "Save directory does not exist, creating: " + saveDir.string());
+        if (!fs::create_directory(saveDir)) {
+            Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+                "Failed to create save directory: " + saveDir.string());
+            return false;
+        }
     }
 
-    // ´æµµÎÄ¼şÂ·¾¶
+    // å­˜æ¡£æ–‡ä»¶è·¯å¾„
     fs::path savePath = saveDir / (saveName + ".sav");
+    Log(LogGrade::DEBUG, LogCode::GAME_SAVED, "Save file path: " + savePath.string());
 
-    // ¹¹½¨´æµµÊı¾İ
+    // æ„å»ºå­˜æ¡£æ•°æ®
     SaveData saveData;
     saveData.currentLine = currentLine;
     saveData.gameState = gameState;
     saveData.scriptPath = scriptPath;
 
-    // »ñÈ¡µ±Ç°Ê±¼ä
+    // è·å–å½“å‰æ—¶é—´
     time_t now = time(nullptr);
     tm timeInfo;
     localtime_s(&timeInfo, &now);
@@ -49,9 +63,11 @@ bool saveGame(const std::string& scriptPath, size_t currentLine,
     strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &timeInfo);
     saveData.saveTime = timeStr;
 
-    // ĞòÁĞ»¯´æµµ
+    // åºåˆ—åŒ–å­˜æ¡£
     std::ofstream fout(savePath);
     if (!fout.is_open()) {
+        Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+            "Cannot open save file for writing: " + savePath.string());
         return false;
     }
 
@@ -61,17 +77,45 @@ bool saveGame(const std::string& scriptPath, size_t currentLine,
     fout << "save_time=" << saveData.saveTime << std::endl;
     fout << std::endl;
 
-    // Ğ´ÈëÓÎÏ·×´Ì¬
-    fout << gameState.serialize();
+    // å†™å…¥æ¸¸æˆçŠ¶æ€
+    std::string serializedState = gameState.serialize();
+    fout << serializedState;
 
+    size_t saveSize = fout.tellp();
     fout.close();
+
+    auto saveEndTime = std::chrono::high_resolution_clock::now();
+    auto saveTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(saveEndTime - saveStartTime).count();
+
+    
+    Log(LogGrade::INFO, LogCode::GAME_SAVED,
+        "Game saved successfully: " + savePath.string() +
+        " (" + std::to_string(saveSize) + " bytes, took " + std::to_string(saveTimeMs) + "ms)");
+
     return true;
 }
 
 bool loadGame(const std::string& savePath, SaveData& saveData) {
+    auto loadStartTime = std::chrono::high_resolution_clock::now();
+
+    Log(LogGrade::INFO, LogCode::GAME_LOADED,
+        "Attempting to load save file: " + savePath);
+
     std::ifstream fin(savePath);
     if (!fin.is_open()) {
+        Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+            "Cannot open save file: " + savePath);
         return false;
+    }
+
+    // è·å–æ–‡ä»¶å¤§å°
+    size_t fileSize = 0;
+    try {
+        fileSize = fs::file_size(savePath);
+    }
+    catch (const std::exception& e) {
+        Log(LogGrade::WARNING, LogCode::SAVE_CORRUPTED,
+            "Cannot get save file size: " + std::string(e.what()));
     }
 
     std::stringstream buffer;
@@ -79,17 +123,29 @@ bool loadGame(const std::string& savePath, SaveData& saveData) {
     std::string data = buffer.str();
     fin.close();
 
-    // ½âÎö´æµµÊı¾İ
+    Log(LogGrade::DEBUG, LogCode::GAME_LOADED,
+        "Save file read: " + std::to_string(data.length()) + " bytes");
+
+    // è§£æå­˜æ¡£æ•°æ®
     std::stringstream ss(data);
     std::string line;
     std::string currentSection;
 
-    while (getline(ss, line)) {
+    std::map<std::string, int> sectionLineCounts;
+    int totalLines = 0;
+
+    while (std::getline(ss, line)) {
+        totalLines++;
         if (line.empty()) continue;
 
         if (line[0] == '[' && line.back() == ']') {
             currentSection = line;
+            sectionLineCounts[currentSection] = 0;
             continue;
+        }
+
+        if (!currentSection.empty()) {
+            sectionLineCounts[currentSection]++;
         }
 
         if (currentSection == "[SAVE_INFO]") {
@@ -100,30 +156,57 @@ bool loadGame(const std::string& savePath, SaveData& saveData) {
 
                 if (key == "script_path") {
                     saveData.scriptPath = value;
+                    Log(LogGrade::DEBUG, LogCode::GAME_LOADED,
+                        "Loaded script_path: " + value);
                 }
                 else if (key == "current_line") {
                     try {
                         saveData.currentLine = std::stoi(value);
+                        Log(LogGrade::DEBUG, LogCode::GAME_LOADED,
+                            "Loaded current_line: " + value);
                     }
                     catch (...) {
+                        Log(LogGrade::WARNING, LogCode::SAVE_CORRUPTED,
+                            "Invalid current_line value: " + value + ", using 0");
                         saveData.currentLine = 0;
                     }
                 }
                 else if (key == "save_time") {
                     saveData.saveTime = value;
+                    Log(LogGrade::DEBUG, LogCode::GAME_LOADED,
+                        "Loaded save_time: " + value);
                 }
             }
         }
-        else if (currentSection == "[VARIABLES]" ||
-                 currentSection == "[CHOICE_HISTORY]" ||
-                 currentSection == "[COLLECTED_ENDINGS]") {
-            // ÕâĞ©²¿·ÖÓÉ GameState::deserialize ´¦Àí
-            continue;
-        }
     }
 
-    // ·´ĞòÁĞ»¯ÓÎÏ·×´Ì¬
-    saveData.gameState.deserialize(data);
+    // ååºåˆ—åŒ–æ¸¸æˆçŠ¶æ€
+    try {
+        saveData.gameState.deserialize(data);
+        Log(LogGrade::DEBUG, LogCode::GAME_LOADED,
+            "Game state deserialized successfully");
+    }
+    catch (const std::exception& e) {
+        Log(LogGrade::ERR, LogCode::SAVE_CORRUPTED,
+            "Failed to deserialize game state: " + std::string(e.what()));
+        return false;
+    }
+
+    auto loadEndTime = std::chrono::high_resolution_clock::now();
+    auto loadTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(loadEndTime - loadStartTime).count();
+
+    // è®°å½•è§£æç»Ÿè®¡
+    Log(LogGrade::DEBUG, LogCode::PERFORMANCE,
+        "Save file statistics: " + std::to_string(totalLines) + " total lines");
+    for (const auto& [section, count] : sectionLineCounts) {
+        Log(LogGrade::DEBUG, LogCode::PERFORMANCE,
+            "  " + section + ": " + std::to_string(count) + " lines");
+    }
+
+    
+    Log(LogGrade::INFO, LogCode::GAME_LOADED,
+        "Save file loaded successfully: " + savePath +
+        " (took " + std::to_string(loadTimeMs) + "ms)");
 
     return true;
 }
@@ -133,7 +216,11 @@ bool hasSaveFile(const std::string& scriptPath) {
     fs::path saveDir = scriptFilePath.parent_path() / "saves";
     fs::path savePath = saveDir / "autosave.sav";
 
-    return fs::exists(savePath);
+    bool exists = fs::exists(savePath);
+    Log(LogGrade::DEBUG, LogCode::GAME_LOADED,
+        "Checking save file: " + savePath.string() + " - " + (exists ? "exists" : "not found"));
+
+    return exists;
 }
 
 std::string getSaveInfo(const std::string& scriptPath) {
@@ -142,33 +229,58 @@ std::string getSaveInfo(const std::string& scriptPath) {
     fs::path savePath = saveDir / "autosave.sav";
 
     if (!fs::exists(savePath)) {
-        return "ÎŞ´æµµ";
+        Log(LogGrade::DEBUG, LogCode::GAME_LOADED,
+            "Save info requested for non-existent file: " + savePath.string());
+        return "æ— å­˜æ¡£";
     }
 
-    // ¶ÁÈ¡´æµµÊ±¼ä
+    // è¯»å–å­˜æ¡£æ—¶é—´
     std::ifstream fin(savePath);
     if (!fin.is_open()) {
-        return "´æµµËğ»µ";
+        Log(LogGrade::WARNING, LogCode::SAVE_CORRUPTED,
+            "Cannot open save file to read info: " + savePath.string());
+        return "å­˜æ¡£æŸå";
     }
 
     std::string line;
-    while (getline(fin, line)) {
+    while (std::getline(fin, line)) {
         if (line.find("save_time=") != std::string::npos) {
-            std::string timeStr = line.substr(10); // ÒÆ³ı "save_time="
-            return "´æµµÊ±¼ä: " + timeStr;
+            std::string timeStr = line.substr(10);
+            Log(LogGrade::DEBUG, LogCode::GAME_LOADED,
+                "Save info retrieved: " + timeStr);
+            return "å­˜æ¡£æ—¶é—´: " + timeStr;
         }
     }
 
-    return "ÓĞ´æµµ";
+    Log(LogGrade::WARNING, LogCode::SAVE_CORRUPTED,
+        "Save file missing save_time field: " + savePath.string());
+    return "æœ‰å­˜æ¡£";
 }
 
-// ==================== ÎÄ¼ş°²È«²Ù×÷ ====================
+// ==================== æ–‡ä»¶å®‰å…¨æ“ä½œ ====================
 
 bool safeViewFile(const std::string& filepath) {
-    Log(LogGrade::INFO, "Try to open file: " + filepath);
+    auto fileOpenStart = std::chrono::high_resolution_clock::now();
+
+    Log(LogGrade::INFO, LogCode::GAME_START,
+        "Attempting to open file securely: " + filepath);
+
     if (!fs::exists(filepath)) {
-        Log(LogGrade::ERR, "File not found: " + filepath);
-        MessageBoxA(NULL, "´íÎó£ºÎÄ¼ş²»´æÔÚ", "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::FILE_NOT_FOUND,
+            "File not found: " + filepath);
+
+        formatErrorOutput(
+            logCodeToString(LogCode::FILE_NOT_FOUND),
+            "FileError",
+            "File does not exist",
+            "",
+            0,
+            std::string::npos,
+            "Check if the file path is correct and the file exists",
+            "https://github.com/Colasensei/PaperVisualNovel/tree/master/Docs/errors/W2001.md"
+        );
+
+        MessageBoxA(NULL, "é”™è¯¯ï¼šæ–‡ä»¶ä¸å­˜åœ¨", "é”™è¯¯", MB_ICONERROR | MB_OK);
         return false;
     }
 
@@ -192,157 +304,250 @@ bool safeViewFile(const std::string& filepath) {
     }
 
     if (!isAllowed) {
-        Log(LogGrade::WARNING, "File type not allowed: " + filepath);
+        Log(LogGrade::WARNING, LogCode::FILE_NOT_FOUND,
+            "File type not allowed: " + filepath + " (extension: " + extension + ")");
+
+        formatErrorOutput(
+            logCodeToString(LogCode::FILE_NOT_FOUND),
+            "SecurityError",
+            "File type is not allowed for security reasons",
+            "",
+            0,
+            std::string::npos,
+            "Only specific file types can be opened. Check documentation for allowed extensions.",
+            "https://github.com/Colasensei/PaperVisualNovel/tree/master/Docs/errors/W2001.md"
+        );
+
         MessageBoxA(NULL,
-                   "°²È«ÏŞÖÆ£º²»ÔÊĞí´ò¿ª´ËÀàĞÍµÄÎÄ¼ş",
-                   "°²È«¾¯¸æ",
-                   MB_ICONWARNING | MB_OK);
+            "å®‰å…¨é™åˆ¶ï¼šä¸å…è®¸æ‰“å¼€æ­¤ç±»å‹çš„æ–‡ä»¶",
+            "å®‰å…¨è­¦å‘Š",
+            MB_ICONWARNING | MB_OK);
         return false;
     }
 
-    auto filesize = fs::file_size(filepath);
-    const size_t MAX_FILE_SIZE = 2000 * 1024 * 1024;
+    try {
+        auto filesize = fs::file_size(filepath);
+        const size_t MAX_FILE_SIZE = 2000 * 1024 * 1024; // 2GB
 
-    if (filesize > MAX_FILE_SIZE) {
-        Log(LogGrade::WARNING, "File size too large: " + filepath);
-        MessageBoxA(NULL,
-                   "ÎÄ¼ş¹ı´ó£¬ÎŞ·¨°²È«´ò¿ª",
-                   "°²È«¾¯¸æ",
-                   MB_ICONWARNING | MB_OK);
+        Log(LogGrade::DEBUG, LogCode::PERFORMANCE,
+            "File size: " + std::to_string(filesize) + " bytes");
+
+        if (filesize > MAX_FILE_SIZE) {
+            Log(LogGrade::WARNING, LogCode::FILE_NOT_FOUND,
+                "File size too large: " + std::to_string(filesize) + " bytes, max: " +
+                std::to_string(MAX_FILE_SIZE));
+
+            MessageBoxA(NULL,
+                "æ–‡ä»¶è¿‡å¤§ï¼Œæ— æ³•å®‰å…¨æ‰“å¼€",
+                "å®‰å…¨è­¦å‘Š",
+                MB_ICONWARNING | MB_OK);
+            return false;
+        }
+
+        HINSTANCE result = ShellExecuteA(
+            NULL,
+            "open",
+            filepath.c_str(),
+            NULL,
+            NULL,
+            SW_SHOWNORMAL
+        );
+
+        auto fileOpenEnd = std::chrono::high_resolution_clock::now();
+        auto fileOpenTime = std::chrono::duration_cast<std::chrono::milliseconds>(fileOpenEnd - fileOpenStart).count();
+
+        if ((INT_PTR)result <= 32) {
+            DWORD error = GetLastError();
+            Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+                "Failed to open file: " + filepath + " Error code: " + std::to_string(error));
+
+            std::string errorMsg = "æ— æ³•æ‰“å¼€æ–‡ä»¶ã€‚é”™è¯¯ä»£ç : " + std::to_string(error);
+            MessageBoxA(NULL, errorMsg.c_str(), "é”™è¯¯", MB_ICONERROR | MB_OK);
+            return false;
+        }
+
+        Log(LogGrade::INFO, LogCode::GAME_START,
+            "File opened successfully: " + filepath +
+            " (took " + std::to_string(fileOpenTime) + "ms)");
+
+        return true;
+    }
+    catch (const std::exception& e) {
+        Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+            "Exception while opening file: " + std::string(e.what()));
         return false;
     }
-
-    HINSTANCE result = ShellExecuteA(
-        NULL,
-        "open",
-        filepath.c_str(),
-        NULL,
-        NULL,
-        SW_SHOWNORMAL
-    );
-
-    if ((INT_PTR)result <= 32) {
-        DWORD error = GetLastError();
-        Log(LogGrade::ERR, "Failed to open file: " + filepath + " Error code: " + std::to_string(error));
-        std::string errorMsg = "ÎŞ·¨´ò¿ªÎÄ¼ş¡£´íÎó´úÂë: " + std::to_string(error);
-        MessageBoxA(NULL, errorMsg.c_str(), "´íÎó", MB_ICONERROR | MB_OK);
-        return false;
-    }
-
-    return true;
 }
 
-void overwriteLine(const std::string& filename, int lineToOverwrite, 
-                   const std::string& newContent) {
+void overwriteLine(const std::string& filename, int lineToOverwrite,
+    const std::string& newContent) {
+    Log(LogGrade::INFO, LogCode::GAME_SAVED,
+        "Attempting to overwrite line " + std::to_string(lineToOverwrite) +
+        " in file: " + filename);
+
     std::ifstream inputFile(filename);
     if (!inputFile.is_open()) {
-        Log(LogGrade::ERR, "Failed to open file: " + filename);
-        MessageBoxA(NULL, "´íÎó£ºÎŞ·¨¶ÁÈ¡ÉèÖÃÎÄ¼ş", "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+            "Failed to open file for reading: " + filename);
+        MessageBoxA(NULL, "é”™è¯¯ï¼šæ— æ³•è¯»å–è®¾ç½®æ–‡ä»¶", "é”™è¯¯", MB_ICONERROR | MB_OK);
         return;
     }
 
     std::vector<std::string> lines;
     std::string line;
-    while (getline(inputFile, line)) {
+    while (std::getline(inputFile, line)) {
         lines.push_back(line);
     }
     inputFile.close();
 
+    Log(LogGrade::DEBUG, LogCode::GAME_SAVED,
+        "File read: " + std::to_string(lines.size()) + " lines");
+
     if (lineToOverwrite > 0 && lineToOverwrite <= static_cast<int>(lines.size())) {
+        std::string oldContent = lines[lineToOverwrite - 1];
         lines[lineToOverwrite - 1] = newContent;
+        Log(LogGrade::DEBUG, LogCode::GAME_SAVED,
+            "Line " + std::to_string(lineToOverwrite) +
+            " changed from: \"" + oldContent + "\" to: \"" + newContent + "\"");
     }
     else {
-        Log(LogGrade::ERR, "Invalid line number: " + std::to_string(lineToOverwrite));
-        MessageBoxA(NULL, "´íÎó£ºĞĞºÅÎŞĞ§", "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::MEMORY_ERROR,
+            "Invalid line number: " + std::to_string(lineToOverwrite) +
+            " (file has " + std::to_string(lines.size()) + " lines)");
+        MessageBoxA(NULL, "é”™è¯¯ï¼šè¡Œå·æ— æ•ˆ", "é”™è¯¯", MB_ICONERROR | MB_OK);
         return;
     }
 
     std::ofstream outputFile(filename);
     if (!outputFile.is_open()) {
-        Log(LogGrade::ERR, "Failed to open file: " + filename);
-        MessageBoxA(NULL, "´íÎó£ºÎŞ·¨Ğ´ÈëÉèÖÃ", "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+            "Failed to open file for writing: " + filename);
+        MessageBoxA(NULL, "é”™è¯¯ï¼šæ— æ³•å†™å…¥è®¾ç½®", "é”™è¯¯", MB_ICONERROR | MB_OK);
         return;
     }
 
+    size_t bytesWritten = 0;
     for (const auto& l : lines) {
         outputFile << l << std::endl;
+        bytesWritten += l.length() + 2; // +2 for newline
     }
     outputFile.close();
-    Log(LogGrade::INFO, "Line " + std::to_string(lineToOverwrite) + " overwritten in " + filename);
+
+    Log(LogGrade::INFO, LogCode::GAME_SAVED,
+        "Line " + std::to_string(lineToOverwrite) + " overwritten in " + filename +
+        " (" + std::to_string(bytesWritten) + " bytes written)");
 }
 
-// ==================== ½á¾ÖÎÄ¼ş²Ù×÷ ====================
+// ==================== ç»“å±€æ–‡ä»¶æ“ä½œ ====================
 
 std::vector<std::string> readCollectedEndings(const std::string& gameFolder) {
+    auto readStartTime = std::chrono::high_resolution_clock::now();
 
-    Log(LogGrade::INFO, "Reading collected endings for game: " + gameFolder);
+    Log(LogGrade::INFO, LogCode::ENDING_SAVED,
+        "Reading collected endings for game: " + gameFolder);
+
     std::vector<std::string> endings;
     std::string filepath = "Novel\\" + gameFolder + "\\data.inf";
 
+    Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+        "Endings file path: " + filepath);
+
     std::ifstream fin(filepath);
     if (!fin.is_open()) {
+        Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+            "No endings file found, returning empty list");
         return endings;
     }
 
     std::string line;
     bool inEndingsSection = false;
+    int endingsCount = 0;
 
-    while (getline(fin, line)) {
-        // Ìø¹ı¿ÕĞĞ
+    while (std::getline(fin, line)) {
         if (line.empty()) continue;
 
-        // ¼ì²éÊÇ·ñÊÇ½á¾Ö¿ªÊ¼±ê¼Ç
         if (line == "[ENDINGS]") {
             inEndingsSection = true;
+            Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+                "Found [ENDINGS] section");
             continue;
         }
 
-        // ¼ì²éÊÇ·ñÊÇÆäËûÕÂ½Ú¿ªÊ¼
         if (line[0] == '[' && line != "[ENDINGS]") {
+            if (inEndingsSection) {
+                Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+                    "Exiting [ENDINGS] section at: " + line);
+            }
             inEndingsSection = false;
             continue;
         }
 
-        // Èç¹ûÊÇ½á¾Ö²¿·Ö£¬¶ÁÈ¡½á¾ÖÃû
         if (inEndingsSection) {
             endings.push_back(line);
+            endingsCount++;
+            Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+                "Found ending: " + line);
         }
     }
 
     fin.close();
 
-    Log(LogGrade::INFO, "Collected " + std::to_string(endings.size()) + " endings for game: " + gameFolder);
+    auto readEndTime = std::chrono::high_resolution_clock::now();
+    auto readTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(readEndTime - readStartTime).count();
+
+
+    Log(LogGrade::INFO, LogCode::ENDING_SAVED,
+        "Collected " + std::to_string(endings.size()) + " endings for game: " + gameFolder +
+        " (took " + std::to_string(readTimeMs) + "ms)");
+
     return endings;
 }
 
-void saveEnding(const std::string& gameFolder, const std::string& endingName, 
-                GameState& gameState) {
-    std::string filepath = "Novel\\" + gameFolder + "\\data.inf";
-    Log(LogGrade::INFO, "Saving ending: " + endingName + " for game: " + gameFolder);
+void saveEnding(const std::string& gameFolder, const std::string& endingName,
+    GameState& gameState) {
+    auto saveStartTime = std::chrono::high_resolution_clock::now();
 
-    // ¶ÁÈ¡ÏÖÓĞÄÚÈİ
+    std::string filepath = "Novel\\" + gameFolder + "\\data.inf";
+    Log(LogGrade::INFO, LogCode::ENDING_SAVED,
+        "Saving ending: \"" + endingName + "\" for game: " + gameFolder);
+
+    Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+        "Endings file path: " + filepath);
+
+    // è¯»å–ç°æœ‰å†…å®¹
     std::vector<std::string> lines;
     std::ifstream fin(filepath);
     if (fin.is_open()) {
         std::string line;
-        while (getline(fin, line)) {
+        while (std::getline(fin, line)) {
             lines.push_back(line);
         }
         fin.close();
+        Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+            "Read " + std::to_string(lines.size()) + " lines from existing file");
+    }
+    else {
+        Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+            "No existing endings file, will create new");
     }
 
-    // ²éÕÒ»ò´´½¨ [ENDINGS] ²¿·Ö
+    // æŸ¥æ‰¾æˆ–åˆ›å»º [ENDINGS] éƒ¨åˆ†
     int endingsSectionIndex = -1;
     bool hasEnding = false;
 
     for (size_t i = 0; i < lines.size(); i++) {
         if (lines[i] == "[ENDINGS]") {
             endingsSectionIndex = i;
-            // ¼ì²éÊÇ·ñÒÑ¾­¼ÇÂ¼ÁËÕâ¸ö½á¾Ö
+            Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+                "Found [ENDINGS] section at line " + std::to_string(i + 1));
+
+            // æ£€æŸ¥æ˜¯å¦å·²ç»è®°å½•äº†è¿™ä¸ªç»“å±€
             for (size_t j = i + 1; j < lines.size(); j++) {
-                if (lines[j][0] == '[') break; // Óöµ½ĞÂµÄÕÂ½Ú±ê¼Ç
+                if (lines[j][0] == '[') break;
                 if (lines[j] == endingName) {
                     hasEnding = true;
+                    Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+                        "Ending already exists at line " + std::to_string(j + 1));
                     break;
                 }
             }
@@ -350,84 +555,131 @@ void saveEnding(const std::string& gameFolder, const std::string& endingName,
         }
     }
 
-    // Èç¹ûÃ»ÓĞ [ENDINGS] ²¿·Ö£¬´´½¨Ëü
+    // å¦‚æœæ²¡æœ‰ [ENDINGS] éƒ¨åˆ†ï¼Œåˆ›å»ºå®ƒ
     if (endingsSectionIndex == -1) {
         lines.push_back("[ENDINGS]");
         endingsSectionIndex = lines.size() - 1;
+        Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+            "Created new [ENDINGS] section at line " + std::to_string(endingsSectionIndex + 1));
     }
 
-    // Èç¹û»¹Ã»ÓĞ¼ÇÂ¼Õâ¸ö½á¾Ö£¬Ìí¼ÓËü
+    // å¦‚æœè¿˜æ²¡æœ‰è®°å½•è¿™ä¸ªç»“å±€ï¼Œæ·»åŠ å®ƒ
     if (!hasEnding) {
-        // ÕÒµ½ [ENDINGS] ²¿·ÖºóµÚÒ»¸ö·Ç½á¾ÖĞĞ
         size_t insertPos = endingsSectionIndex + 1;
         while (insertPos < lines.size() && lines[insertPos][0] != '[') {
             insertPos++;
         }
 
         lines.insert(lines.begin() + insertPos, endingName);
+        Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+            "Inserted ending at line " + std::to_string(insertPos + 1));
 
-        // ±£´æµ½ÎÄ¼ş
+        // ä¿å­˜åˆ°æ–‡ä»¶
         std::ofstream fout(filepath);
         if (fout.is_open()) {
             for (const auto& line : lines) {
                 fout << line << std::endl;
             }
             fout.close();
-        }
 
-        // ¸üĞÂÓÎÏ·×´Ì¬
-        gameState.addEnding(endingName);
-        Log(LogGrade::INFO, "Ending saved: " + endingName + " for game: " + gameFolder);
+            auto saveEndTime = std::chrono::high_resolution_clock::now();
+            auto saveTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(saveEndTime - saveStartTime).count();
+
+            // æ›´æ–°æ¸¸æˆçŠ¶æ€
+            gameState.addEnding(endingName);
+
+           
+
+            Log(LogGrade::INFO, LogCode::ENDING_SAVED,
+                "Ending saved: \"" + endingName + "\" for game: " + gameFolder +
+                " (took " + std::to_string(saveTimeMs) + "ms)");
+        }
+        else {
+            Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+                "Failed to write endings file: " + filepath);
+        }
+    }
+    else {
+        Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+            "Ending already exists, skipping save: " + endingName);
     }
 }
 
 void loadAllEndings(const std::vector<std::string>& lines, GameState& gameState) {
+    auto loadStartTime = std::chrono::high_resolution_clock::now();
 
-    Log(LogGrade::INFO, "Loading all endings from script");
+    Log(LogGrade::INFO, LogCode::ENDING_SAVED,
+        "Loading all endings from script");
+
+    int endingsCount = 0;
+    int lineNumber = 0;
+
     for (const auto& line : lines) {
+        lineNumber++;
         std::stringstream ss(line);
         std::string cmd;
         ss >> cmd;
 
         if (cmd == "endname" || cmd == "ENDNAME") {
             std::string endingName;
-            getline(ss, endingName);
+            std::getline(ss, endingName);
 
-            // È¥³ı¿ªÍ·¿Õ¸ñ
             size_t start = endingName.find_first_not_of(" ");
             if (start != std::string::npos) {
                 endingName = endingName.substr(start);
             }
 
+            size_t end = endingName.find_last_not_of(" \t\r");
+            if (end != std::string::npos) {
+                endingName = endingName.substr(0, end + 1);
+            }
+
             if (!endingName.empty()) {
                 gameState.registerEnding(endingName);
+                endingsCount++;
+                Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+                    "Registered ending at line " + std::to_string(lineNumber) +
+                    ": \"" + endingName + "\"");
             }
         }
     }
+
+    auto loadEndTime = std::chrono::high_resolution_clock::now();
+    auto loadTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(loadEndTime - loadStartTime).count();
+
+    
+
+    Log(LogGrade::INFO, LogCode::ENDING_SAVED,
+        "Registered " + std::to_string(endingsCount) + " total endings from script" +
+        " (took " + std::to_string(loadTimeMs) + "ms)");
 }
 
-// ==================== ÓÎÏ·Í³¼Æ ====================
+// ==================== æ¸¸æˆç»Ÿè®¡ ====================
 
 int countTotalEndingsInScript(const std::string& scriptPath) {
-    Log(LogGrade::INFO, "Counting total endings in script: " + scriptPath);
+    auto countStartTime = std::chrono::high_resolution_clock::now();
+
+    Log(LogGrade::INFO, LogCode::ENDING_SAVED,
+        "Counting total endings in script: " + scriptPath);
+
     std::set<std::string> uniqueEndings;
 
     std::ifstream in(scriptPath);
     if (!in.is_open()) {
+        Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+            "Cannot open script file: " + scriptPath);
         return 0;
     }
 
     std::string line;
     int lineNum = 0;
-    while (getline(in, line)) {
+    while (std::getline(in, line)) {
         lineNum++;
 
-        // È¥³ı¿ÉÄÜµÄ»Ø³µ·û
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
 
-        // Ìø¹ı¿ÕĞĞºÍ×¢ÊÍ
         if (line.empty() || line[0] == '/' || line[0] == '#') {
             continue;
         }
@@ -438,16 +690,13 @@ int countTotalEndingsInScript(const std::string& scriptPath) {
 
         if (cmd == "endname" || cmd == "ENDNAME") {
             std::string endingName;
-            // ¶ÁÈ¡Ê£Óà²¿·Ö×÷Îª½á¾ÖÃû
-            getline(ss, endingName);
-            Log(LogGrade::DEBUG, "Found ending: " + endingName + " at line " + std::to_string(lineNum));
-            // È¥³ı¿ªÍ·¿Õ¸ñ
+            std::getline(ss, endingName);
+
             size_t start = endingName.find_first_not_of(" \t");
             if (start != std::string::npos) {
                 endingName = endingName.substr(start);
             }
 
-            // È¥³ı¿ÉÄÜµÄ½áÎ²¿Õ¸ñºÍ»Ø³µ
             size_t end = endingName.find_last_not_of(" \t\r");
             if (end != std::string::npos) {
                 endingName = endingName.substr(0, end + 1);
@@ -455,78 +704,96 @@ int countTotalEndingsInScript(const std::string& scriptPath) {
 
             if (!endingName.empty()) {
                 uniqueEndings.insert(endingName);
+                Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+                    "Found ending at line " + std::to_string(lineNum) +
+                    ": \"" + endingName + "\"");
             }
         }
     }
     in.close();
 
+    auto countEndTime = std::chrono::high_resolution_clock::now();
+    auto countTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(countEndTime - countStartTime).count();
+
+   
+
+    Log(LogGrade::INFO, LogCode::ENDING_SAVED,
+        "Found " + std::to_string(uniqueEndings.size()) + " unique endings in script: " + scriptPath +
+        " (took " + std::to_string(countTimeMs) + "ms)");
+
     return uniqueEndings.size();
 }
 
 std::pair<int, int> getGameEndingStats(const std::string& gameFolderPath) {
-    Log(LogGrade::INFO, "Getting ending stats for game: " + gameFolderPath);
+    auto statsStartTime = std::chrono::high_resolution_clock::now();
+
+    Log(LogGrade::INFO, LogCode::ENDING_SAVED,
+        "Getting ending stats for game: " + gameFolderPath);
+
     int collected = 0;
     int total = 0;
 
-    // ·½·¨1£ºÊ×ÏÈ³¢ÊÔ´Ó endings.dat ¶ÁÈ¡£¨ĞÂÏµÍ³£©
+    // æ–¹æ³•1ï¼šé¦–å…ˆå°è¯•ä» endings.dat è¯»å–ï¼ˆæ–°ç³»ç»Ÿï¼‰
     std::string endingsFileNew = gameFolderPath + "endings.dat";
     std::ifstream finNew(endingsFileNew);
     if (finNew.is_open()) {
+        Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+            "Reading from new endings format: " + endingsFileNew);
+
         std::string line;
-        while (getline(finNew, line)) {
-            // È¥³ı¿ÉÄÜµÄ»Ø³µ·û
+        while (std::getline(finNew, line)) {
             if (!line.empty() && line.back() == '\r') {
                 line.pop_back();
             }
 
-            // Ö»Í³¼Æ·Ç¿ÕĞĞ£¬ÇÒ²»ÊÇ±ê¼ÇĞĞ
             if (!line.empty() && line != "[ENDINGS]") {
                 collected++;
             }
         }
         finNew.close();
+        Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+            "Found " + std::to_string(collected) + " endings in new format");
     }
 
-    // ·½·¨2£ºÈç¹ûĞÂÏµÍ³Ã»ÓĞÊı¾İ£¬³¢ÊÔ´Ó data.inf ¶ÁÈ¡£¨¼æÈİ¾ÉÏµÍ³£©
+    // æ–¹æ³•2ï¼šå¦‚æœæ–°ç³»ç»Ÿæ²¡æœ‰æ•°æ®ï¼Œå°è¯•ä» data.inf è¯»å–ï¼ˆå…¼å®¹æ—§ç³»ç»Ÿï¼‰
     if (collected == 0) {
         std::string endingsFileOld = gameFolderPath + "data.inf";
         std::ifstream finOld(endingsFileOld);
         if (finOld.is_open()) {
+            Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+                "Reading from legacy endings format: " + endingsFileOld);
+
             std::string line;
             bool inEndingsSection = false;
 
-            while (getline(finOld, line)) {
-                // È¥³ı¿ÉÄÜµÄ»Ø³µ·û
+            while (std::getline(finOld, line)) {
                 if (!line.empty() && line.back() == '\r') {
                     line.pop_back();
                 }
 
-                // Ìø¹ı¿ÕĞĞ
                 if (line.empty()) continue;
 
-                // ¼ì²éÊÇ·ñÊÇ½á¾Ö¿ªÊ¼±ê¼Ç
                 if (line == "[ENDINGS]") {
                     inEndingsSection = true;
-                    continue;  // ÖØÒª£ºÌø¹ı±ê¼ÇĞĞ±¾Éí
+                    continue;
                 }
 
-                // ¼ì²éÊÇ·ñÊÇÆäËûÕÂ½Ú¿ªÊ¼
                 if (line[0] == '[' && line != "[ENDINGS]") {
                     inEndingsSection = false;
                     continue;
                 }
 
-                // Èç¹ûÊÇ½á¾Ö²¿·Ö£¬¶ÁÈ¡½á¾ÖÃû
                 if (inEndingsSection) {
                     collected++;
                 }
             }
             finOld.close();
+            Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+                "Found " + std::to_string(collected) + " endings in legacy format");
         }
     }
 
-    // Í³¼Æ×Ü½á¾ÖÊı
-    // Ê×ÏÈ²éÕÒ.pgnÎÄ¼ş
+    // ç»Ÿè®¡æ€»ç»“å±€æ•°
     for (const auto& entry : fs::directory_iterator(gameFolderPath)) {
         if (entry.is_regular_file() && entry.path().extension() == ".pgn") {
             std::string pgnFile = entry.path().string();
@@ -535,83 +802,103 @@ std::pair<int, int> getGameEndingStats(const std::string& gameFolderPath) {
         }
     }
 
-    // Èç¹û´Ó½Å±¾ÖĞÍ³¼ÆÊ§°Ü£¬³¢ÊÔ´ÓÆäËû·½Ê½»ñÈ¡
+    // å¦‚æœä»è„šæœ¬ä¸­ç»Ÿè®¡å¤±è´¥ï¼Œå°è¯•ä»å…¶ä»–æ–¹å¼è·å–
     if (total == 0 && collected > 0) {
-        total = collected; // ÖÁÉÙÒÑ¾­ÊÕ¼¯µÄÊıÁ¿
+        total = collected;
+        Log(LogGrade::WARNING, LogCode::ENDING_SAVED,
+            "Could not count total endings from script, using collected count as total");
     }
 
-    // È·±£²»»á³öÏÖ collected > total µÄÇé¿ö
+    // ç¡®ä¿ä¸ä¼šå‡ºç° collected > total çš„æƒ…å†µ
     if (collected > total && total > 0) {
+        Log(LogGrade::WARNING, LogCode::ENDING_SAVED,
+            "Collected endings (" + std::to_string(collected) +
+            ") exceed total endings (" + std::to_string(total) +
+            "), adjusting to total");
         collected = total;
     }
-    Log(LogGrade::DEBUG, "Collected: " + std::to_string(collected) + ", Total: " + std::to_string(total));
+
+    auto statsEndTime = std::chrono::high_resolution_clock::now();
+    auto statsTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(statsEndTime - statsStartTime).count();
+
+    
+
+    Log(LogGrade::DEBUG, LogCode::ENDING_SAVED,
+        "Collected: " + std::to_string(collected) +
+        ", Total: " + std::to_string(total) +
+        " (took " + std::to_string(statsTimeMs) + "ms)");
 
     return { collected, total };
 }
 
 std::string getGameFolderName(const std::string& fullPath) {
     fs::path path(fullPath);
-    return path.filename().string();
+    std::string folderName = path.filename().string();
+    Log(LogGrade::DEBUG, LogCode::GAME_LOADED,
+        "Extracted folder name: " + folderName + " from path: " + fullPath);
+    return folderName;
 }
 
-
-// ==================== ²å¼ş¹ÜÀí ====================
+// ==================== æ’ä»¶ç®¡ç† ====================
 
 std::vector<PluginInfo> readInstalledPlugins() {
+    auto pluginsReadStart = std::chrono::high_resolution_clock::now();
+
     std::vector<PluginInfo> plugins;
     std::string pluginsDir = "Plugins";
 
-    Log(LogGrade::INFO, "Reading installed plugins from: " + pluginsDir);
+    Log(LogGrade::INFO, LogCode::PLUGIN_LOADED,
+        "Reading installed plugins from: " + pluginsDir);
 
-    // ¼ì²éPluginsÄ¿Â¼ÊÇ·ñ´æÔÚ
     if (!fs::exists(pluginsDir)) {
-        Log(LogGrade::WARNING, "Plugins directory does not exist: " + pluginsDir);
-        return plugins;  // ·µ»Ø¿ÕÁĞ±í
+        Log(LogGrade::WARNING, LogCode::PLUGIN_MISSING,
+            "Plugins directory does not exist: " + pluginsDir);
+        return plugins;
     }
 
-    // ±éÀúPluginsÄ¿Â¼ÏÂµÄËùÓĞÎÄ¼ş¼Ğ
+    int pluginsFound = 0;
+    int pluginsLoaded = 0;
+
     try {
         for (const auto& entry : fs::directory_iterator(pluginsDir)) {
             if (entry.is_directory()) {
+                pluginsFound++;
                 std::string pluginName = entry.path().filename().string();
                 std::string aboutFilePath = entry.path().string() + "\\about.cfg";
 
-                Log(LogGrade::DEBUG, "Checking plugin: " + pluginName);
+                Log(LogGrade::DEBUG, LogCode::PLUGIN_LOADED,
+                    "Checking plugin: " + pluginName + " at " + entry.path().string());
 
-                // ¼ì²éabout.cfgÎÄ¼şÊÇ·ñ´æÔÚ
                 if (fs::exists(aboutFilePath)) {
                     PluginInfo plugin;
                     plugin.name = pluginName;
 
-                    // ¶ÁÈ¡about.cfgÎÄ¼ş
                     std::ifstream aboutFile(aboutFilePath);
                     if (aboutFile.is_open()) {
+                        int configLines = 0;
                         std::string line;
+
                         while (std::getline(aboutFile, line)) {
-                            // Ìø¹ı¿ÕĞĞºÍ×¢ÊÍĞĞ
+                            configLines++;
                             std::string trimmedLine = trim(line);
                             if (trimmedLine.empty() || trimmedLine[0] == '#') {
                                 continue;
                             }
 
-                            // ²éÕÒµÈºÅÎ»ÖÃ
                             size_t equalsPos = trimmedLine.find('=');
                             if (equalsPos == std::string::npos) {
                                 continue;
                             }
 
-                            // ÌáÈ¡¼üºÍÖµ
                             std::string key = trim(trimmedLine.substr(0, equalsPos));
                             std::string value = trim(trimmedLine.substr(equalsPos + 1));
 
-                            // È¥³ı¿ÉÄÜµÄÒıºÅ
                             if (value.length() >= 2 &&
                                 ((value.front() == '"' && value.back() == '"') ||
                                     (value.front() == '\'' && value.back() == '\''))) {
                                 value = value.substr(1, value.length() - 2);
                             }
 
-                            // ¸ù¾İ¼üÃû´æ´¢Öµ
                             if (key == "RunCommand") {
                                 plugin.runCommand = value;
                             }
@@ -630,112 +917,179 @@ std::vector<PluginInfo> readInstalledPlugins() {
                         }
                         aboutFile.close();
 
-                        // ÑéÖ¤±ØÒªµÄ×Ö¶Î
+                        Log(LogGrade::DEBUG, LogCode::PLUGIN_LOADED,
+                            "Plugin " + pluginName + " config: " +
+                            std::to_string(configLines) + " lines, " +
+                            "RunCommand=" + plugin.runCommand + ", " +
+                            "RunFile=" + plugin.runFile);
+
                         if (!plugin.runCommand.empty() && !plugin.runFile.empty()) {
                             plugins.push_back(plugin);
-                            Log(LogGrade::INFO, "Plugin loaded: " + pluginName);
+                            pluginsLoaded++;
+                            Log(LogGrade::INFO, LogCode::PLUGIN_LOADED,
+                                "Plugin loaded: " + pluginName +
+                                (plugin.version.empty() ? "" : " v" + plugin.version));
                         }
                         else {
-                            Log(LogGrade::WARNING, "Plugin " + pluginName + " missing required fields (RunCommand or RunFile)");
+                            Log(LogGrade::WARNING, LogCode::PLUGIN_MISSING,
+                                "Plugin " + pluginName +
+                                " missing required fields (RunCommand or RunFile)");
                         }
                     }
                     else {
-                        Log(LogGrade::WARNING, "Cannot open about.cfg for plugin: " + pluginName);
+                        Log(LogGrade::WARNING, LogCode::FILE_OPEN_FAILED,
+                            "Cannot open about.cfg for plugin: " + pluginName);
                     }
                 }
                 else {
-                    Log(LogGrade::WARNING, "Plugin " + pluginName + " missing about.cfg file");
+                    Log(LogGrade::WARNING, LogCode::PLUGIN_MISSING,
+                        "Plugin " + pluginName + " missing about.cfg file");
                 }
             }
         }
     }
     catch (const std::exception& e) {
-        Log(LogGrade::ERR, "Error reading plugins directory: " + std::string(e.what()));
-        MessageBoxA(NULL, "¶ÁÈ¡²å¼şÄ¿Â¼Ê±³ö´í", "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::MEMORY_ERROR,
+            "Error reading plugins directory: " + std::string(e.what()));
+
+        formatErrorOutput(
+            logCodeToString(LogCode::MEMORY_ERROR),
+            "FileSystemError",
+            "Cannot read plugins directory",
+            "",
+            0,
+            std::string::npos,
+            "Check if the Plugins directory is accessible and not corrupted",
+            "https://github.com/Colasensei/PaperVisualNovel/tree/master/Docs/errors/E3007.md"
+        );
+
+        MessageBoxA(NULL, "è¯»å–æ’ä»¶ç›®å½•æ—¶å‡ºé”™", "é”™è¯¯", MB_ICONERROR | MB_OK);
     }
 
-    Log(LogGrade::INFO, "Total plugins found: " + std::to_string(plugins.size()));
+    auto pluginsReadEnd = std::chrono::high_resolution_clock::now();
+    auto pluginsReadTime = std::chrono::duration_cast<std::chrono::milliseconds>(pluginsReadEnd - pluginsReadStart).count();
+
+   
+
+    Log(LogGrade::INFO, LogCode::PLUGIN_LOADED,
+        "Total plugins found: " + std::to_string(pluginsFound) +
+        ", loaded: " + std::to_string(pluginsLoaded) +
+        " (took " + std::to_string(pluginsReadTime) + "ms)");
+
     return plugins;
 }
 
 bool hasPlugin(const std::string& pluginName) {
     std::string pluginDir = "Plugins\\" + pluginName;
-    return fs::exists(pluginDir);
+    bool exists = fs::exists(pluginDir);
+
+    Log(LogGrade::DEBUG, LogCode::PLUGIN_LOADED,
+        "Checking plugin existence: " + pluginName +
+        " - " + (exists ? "found" : "not found"));
+
+    return exists;
 }
 
 std::string getPluginFullCommand(const PluginInfo& plugin) {
     std::string pluginPath = "Plugins\\" + plugin.name + "\\";
-
-    // ¹¹½¨ÍêÕûÃüÁîÂ·¾¶
     std::string fullCommand = plugin.runCommand;
 
-    // Èç¹ûÔËĞĞÃüÁî²»°üº¬¿Õ¸ñÇÒ²»ÊÇ¾ø¶ÔÂ·¾¶£¬¿ÉÄÜÊÇÏà¶ÔÂ·¾¶
     if (plugin.runCommand.find(' ') == std::string::npos &&
         plugin.runCommand.find('\\') == std::string::npos &&
         plugin.runCommand.find('/') == std::string::npos) {
-        // ¿ÉÄÜÊÇ¿ÉÖ´ĞĞÎÄ¼ş£¬ÔÚ²å¼şÄ¿Â¼ÖĞ²éÕÒ
+
         std::string possibleExe = pluginPath + plugin.runCommand + ".exe";
         if (fs::exists(possibleExe)) {
+            Log(LogGrade::DEBUG, LogCode::PLUGIN_LOADED,
+                "Found executable at: " + possibleExe);
             fullCommand = possibleExe;
         }
     }
 
-    // Ìí¼ÓÔËĞĞÎÄ¼ş
     fullCommand += " " + pluginPath + plugin.runFile;
+
+    Log(LogGrade::DEBUG, LogCode::PLUGIN_LOADED,
+        "Built plugin command: " + fullCommand);
 
     return fullCommand;
 }
 
-
-// ==================== ²å¼şÔËĞĞ ====================
+// ==================== æ’ä»¶è¿è¡Œ ====================
 
 bool runPlugin(const std::string& pluginName, const std::string& runArgs) {
-    Log(LogGrade::INFO, "Attempting to run plugin: " + pluginName);
+    auto pluginStartTime = std::chrono::high_resolution_clock::now();
 
-    // ¹¹½¨²å¼şÄ¿Â¼Â·¾¶
+    Log(LogGrade::INFO, LogCode::PLUGIN_LOADED,
+        "Attempting to run plugin: " + pluginName +
+        (runArgs.empty() ? "" : " with args: \"" + runArgs + "\""));
+
     std::string pluginDir = "Plugins\\" + pluginName;
 
-    // ¼ì²é²å¼şÄ¿Â¼ÊÇ·ñ´æÔÚ
     if (!fs::exists(pluginDir)) {
-        Log(LogGrade::ERR, "Plugin directory not found: " + pluginDir);
-        MessageBoxA(NULL, ("´íÎó£º²å¼şÄ¿Â¼²»´æÔÚ - " + pluginName).c_str(),
-            "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::PLUGIN_MISSING,
+            "Plugin directory not found: " + pluginDir);
+
+        formatErrorOutput(
+            logCodeToString(LogCode::PLUGIN_MISSING),
+            "PluginError",
+            "Plugin directory not found",
+            "",
+            0,
+            std::string::npos,
+            "Make sure the plugin is installed in Plugins/" + pluginName + "/ directory",
+            "https://github.com/Colasensei/PaperVisualNovel/tree/master/Docs/errors/W2002.md"
+        );
+
+        MessageBoxA(NULL, ("é”™è¯¯ï¼šæ’ä»¶ç›®å½•ä¸å­˜åœ¨ - " + pluginName).c_str(),
+            "é”™è¯¯", MB_ICONERROR | MB_OK);
         return false;
     }
 
-    // ¼ì²éabout.cfgÎÄ¼şÊÇ·ñ´æÔÚ
     std::string aboutFilePath = pluginDir + "\\about.cfg";
     if (!fs::exists(aboutFilePath)) {
-        Log(LogGrade::ERR, "about.cfg file not found for plugin: " + pluginName);
-        MessageBoxA(NULL, ("´íÎó£º²å¼şÅäÖÃÎÄ¼şÈ±Ê§ - " + pluginName).c_str(),
-            "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::PLUGIN_MISSING,
+            "about.cfg file not found for plugin: " + pluginName);
+
+        formatErrorOutput(
+            logCodeToString(LogCode::PLUGIN_MISSING),
+            "PluginError",
+            "Plugin configuration file missing",
+            "",
+            0,
+            std::string::npos,
+            "Each plugin must have an about.cfg file in its root directory",
+            "https://github.com/Colasensei/PaperVisualNovel/tree/master/Docs/errors/W2002.md"
+        );
+
+        MessageBoxA(NULL, ("é”™è¯¯ï¼šæ’ä»¶é…ç½®æ–‡ä»¶ç¼ºå¤± - " + pluginName).c_str(),
+            "é”™è¯¯", MB_ICONERROR | MB_OK);
         return false;
     }
 
-    // ¶ÁÈ¡²å¼şÅäÖÃ
     PluginInfo pluginInfo;
     pluginInfo.name = pluginName;
 
     std::ifstream aboutFile(aboutFilePath);
     if (!aboutFile.is_open()) {
-        Log(LogGrade::ERR, "Cannot open about.cfg for plugin: " + pluginName);
-        MessageBoxA(NULL, ("´íÎó£ºÎŞ·¨¶ÁÈ¡²å¼şÅäÖÃ - " + pluginName).c_str(),
-            "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+            "Cannot open about.cfg for plugin: " + pluginName);
+        MessageBoxA(NULL, ("é”™è¯¯ï¼šæ— æ³•è¯»å–æ’ä»¶é…ç½® - " + pluginName).c_str(),
+            "é”™è¯¯", MB_ICONERROR | MB_OK);
         return false;
     }
 
     std::string line;
     bool hasRunCommand = false;
     bool hasRunFile = false;
+    int configLines = 0;
 
     while (std::getline(aboutFile, line)) {
-        // Ìø¹ı¿ÕĞĞºÍ×¢ÊÍ
+        configLines++;
         std::string trimmedLine = trim(line);
         if (trimmedLine.empty() || trimmedLine[0] == '#') {
             continue;
         }
 
-        // ½âÎö¼üÖµ¶Ô
         size_t equalsPos = trimmedLine.find('=');
         if (equalsPos == std::string::npos) {
             continue;
@@ -744,14 +1098,12 @@ bool runPlugin(const std::string& pluginName, const std::string& runArgs) {
         std::string key = trim(trimmedLine.substr(0, equalsPos));
         std::string value = trim(trimmedLine.substr(equalsPos + 1));
 
-        // È¥³ıÒıºÅ
         if (value.length() >= 2 &&
             ((value.front() == '"' && value.back() == '"') ||
                 (value.front() == '\'' && value.back() == '\''))) {
             value = value.substr(1, value.length() - 2);
         }
 
-        // ÌáÈ¡±ØÒªĞÅÏ¢
         if (key == "RunCommand") {
             pluginInfo.runCommand = value;
             hasRunCommand = true;
@@ -766,157 +1118,225 @@ bool runPlugin(const std::string& pluginName, const std::string& runArgs) {
     }
     aboutFile.close();
 
-    // ¼ì²é±ØÒªÅäÖÃÊÇ·ñ´æÔÚ
+    Log(LogGrade::DEBUG, LogCode::PLUGIN_LOADED,
+        "Plugin " + pluginName + " config: " + std::to_string(configLines) + " lines");
+
     if (!hasRunCommand) {
-        Log(LogGrade::ERR, "Plugin " + pluginName + " missing RunCommand in about.cfg");
-        MessageBoxA(NULL, ("´íÎó£º²å¼şÅäÖÃÈ±ÉÙRunCommand - " + pluginName).c_str(),
-            "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::PLUGIN_MISSING,
+            "Plugin " + pluginName + " missing RunCommand in about.cfg");
+        MessageBoxA(NULL, ("é”™è¯¯ï¼šæ’ä»¶é…ç½®ç¼ºå°‘RunCommand - " + pluginName).c_str(),
+            "é”™è¯¯", MB_ICONERROR | MB_OK);
         return false;
     }
 
     if (!hasRunFile) {
-        Log(LogGrade::ERR, "Plugin " + pluginName + " missing RunFile in about.cfg");
-        MessageBoxA(NULL, ("´íÎó£º²å¼şÅäÖÃÈ±ÉÙRunFile - " + pluginName).c_str(),
-            "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::PLUGIN_MISSING,
+            "Plugin " + pluginName + " missing RunFile in about.cfg");
+        MessageBoxA(NULL, ("é”™è¯¯ï¼šæ’ä»¶é…ç½®ç¼ºå°‘RunFile - " + pluginName).c_str(),
+            "é”™è¯¯", MB_ICONERROR | MB_OK);
         return false;
     }
 
-    if ( pluginInfo.runCommand == ".exe" || pluginInfo.runCommand == "bin"|| pluginInfo.runCommand == "/") {
-        pluginInfo.runCommand= "";//Ö±½ÓÔËĞĞ¿ÉÖ´ĞĞÎÄ¼ş
+    if (pluginInfo.runCommand == ".exe" || pluginInfo.runCommand == "bin" || pluginInfo.runCommand == "/") {
+        pluginInfo.runCommand = "";
+        Log(LogGrade::DEBUG, LogCode::PLUGIN_LOADED,
+            "Empty RunCommand detected, using direct execution");
     }
 
-    // ¹¹½¨ÍêÕûµÄÔËĞĞÃüÁî
     std::string fullCommand;
-
-    // ¼ì²éRunFileÊÇ·ñÊÇÏà¶ÔÂ·¾¶
     fs::path runFilePath(pluginInfo.runFile);
+
     if (runFilePath.is_relative()) {
-        // Èç¹ûÊÇÏà¶ÔÂ·¾¶£¬Ìí¼Ó²å¼şÄ¿Â¼Ç°×º
         fullCommand = pluginInfo.runCommand + " " + pluginDir + "\\" + pluginInfo.runFile;
     }
     else {
-        // Èç¹ûÊÇ¾ø¶ÔÂ·¾¶£¬Ö±½ÓÊ¹ÓÃ
         fullCommand = pluginInfo.runCommand + " " + pluginInfo.runFile;
     }
 
-    // Ìí¼ÓÔËĞĞ²ÎÊı
     if (!runArgs.empty()) {
         fullCommand += " " + runArgs;
     }
 
-    Log(LogGrade::INFO, "Running plugin command: " + fullCommand);
+    Log(LogGrade::DEBUG, LogCode::PLUGIN_LOADED,
+        "Executing plugin command: " + fullCommand);
 
-    // Ö´ĞĞÃüÁî
     int result = system(fullCommand.c_str());
 
+    auto pluginEndTime = std::chrono::high_resolution_clock::now();
+    auto pluginExecTime = std::chrono::duration_cast<std::chrono::milliseconds>(pluginEndTime - pluginStartTime).count();
+
     if (result == 0) {
-        Log(LogGrade::INFO, "Plugin executed successfully: " + pluginName);
+       
+        Log(LogGrade::INFO, LogCode::PLUGIN_LOADED,
+            "Plugin executed successfully: " + pluginName +
+            " (took " + std::to_string(pluginExecTime) + "ms)");
         return true;
     }
     else {
-        Log(LogGrade::ERR, "Plugin execution failed with code " + std::to_string(result) +
-            ": " + pluginName);
-        MessageBoxA(NULL, ("²å¼şÖ´ĞĞÊ§°Ü£¬´íÎó´úÂë: " + std::to_string(result)).c_str(),
-            "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::PLUGIN_EXEC_FAILED,
+            "Plugin execution failed with code " + std::to_string(result) +
+            ": " + pluginName + " (took " + std::to_string(pluginExecTime) + "ms)");
+
+        formatErrorOutput(
+            logCodeToString(LogCode::PLUGIN_EXEC_FAILED),
+            "PluginError",
+            "Plugin execution failed",
+            "",
+            0,
+            std::string::npos,
+            "Check if the plugin's RunCommand and RunFile are valid and have proper permissions",
+            "https://github.com/Colasensei/PaperVisualNovel/tree/master/Docs/errors/E3006.md"
+        );
+
+        MessageBoxA(NULL, ("æ’ä»¶æ‰§è¡Œå¤±è´¥ï¼Œé”™è¯¯ä»£ç : " + std::to_string(result)).c_str(),
+            "é”™è¯¯", MB_ICONERROR | MB_OK);
         return false;
     }
 }
 
-// ==================== ÅäÖÃÎÄ¼ş ====================
-
-
+// ==================== é…ç½®æ–‡ä»¶ ====================
 
 std::string readCfg(const std::string& key) {
+    auto cfgReadStart = std::chrono::high_resolution_clock::now();
+
     const std::string filename = "data.cfg";
 
-    Log(LogGrade::INFO, "Reading configuration file.");
+    Log(LogGrade::INFO, LogCode::GAME_START,
+        "Reading configuration key: " + key + " from " + filename);
+
     std::ifstream inFile(filename);
     if (!inFile.is_open()) {
-        Log(LogGrade::ERR, "Failed to open configuration file.");
-        MessageBoxA(NULL, ("´íÎó£ºÎŞ·¨´ò¿ªÅäÖÃÎÄ¼ş\n" + filename).c_str(),
-            "ÎÄ¼ş´íÎó", MB_ICONERROR | MB_OK);
-        return "";  // ·µ»Ø¿Õ×Ö·û´®±íÊ¾¶ÁÈ¡Ê§°Ü
+        Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+            "Failed to open configuration file: " + filename);
+
+        formatErrorOutput(
+            logCodeToString(LogCode::FILE_OPEN_FAILED),
+            "FileError",
+            "Cannot open configuration file",
+            "",
+            0,
+            std::string::npos,
+            "Make sure data.cfg exists in the application directory",
+            "https://github.com/Colasensei/PaperVisualNovel/tree/master/Docs/errors/E3004.md"
+        );
+
+        MessageBoxA(NULL, ("é”™è¯¯ï¼šæ— æ³•æ‰“å¼€é…ç½®æ–‡ä»¶\n" + filename).c_str(),
+            "æ–‡ä»¶é”™è¯¯", MB_ICONERROR | MB_OK);
+        return "";
     }
 
     std::string line;
+    int lineNum = 0;
+    std::string value;
+
     while (std::getline(inFile, line)) {
-        // Ìø¹ı¿ÕĞĞºÍ×¢ÊÍĞĞ£¨ÒÔ#»ò;¿ªÍ·£©
+        lineNum++;
         std::string trimmedLine = trim(line);
-        if (trimmedLine.empty() ||
-            trimmedLine[0] == '#' ||
-            trimmedLine[0] == ';') {
+
+        if (trimmedLine.empty() || trimmedLine[0] == '#' || trimmedLine[0] == ';') {
             continue;
         }
 
-        // ²éÕÒµÈºÅÎ»ÖÃ
         size_t equalsPos = trimmedLine.find('=');
         if (equalsPos == std::string::npos) {
-            continue;  // Ã»ÓĞµÈºÅ£¬²»ÊÇÓĞĞ§µÄ¼üÖµ¶Ô
+            Log(LogGrade::DEBUG, LogCode::GAME_START,
+                "Skipping line " + std::to_string(lineNum) + ": no equals sign");
+            continue;
         }
 
-        // ÌáÈ¡¼üÃû
         std::string currentKey = trim(trimmedLine.substr(0, equalsPos));
 
-        // ¼ì²éÊÇ·ñÆ¥ÅäÄ¿±ê¼ü£¨´óĞ¡Ğ´Ãô¸Ğ£©
         if (currentKey == key) {
-            // ÌáÈ¡²¢·µ»ØÖµ
-            std::string value = trim(trimmedLine.substr(equalsPos + 1));
-            // ÒÆ³ı¿ÉÄÜµÄÒıºÅ
+            value = trim(trimmedLine.substr(equalsPos + 1));
+
             if (value.length() >= 2 &&
                 ((value.front() == '"' && value.back() == '"') ||
                     (value.front() == '\'' && value.back() == '\''))) {
                 value = value.substr(1, value.length() - 2);
             }
-            Log(LogGrade::INFO, "Found key: " + key + ", value: " + value);
-            inFile.close();
-            return value;
+
+            Log(LogGrade::INFO, LogCode::GAME_START,
+                "Found key: " + key + " = \"" + value + "\" at line " + std::to_string(lineNum));
+            break;
         }
-        
     }
 
     inFile.close();
-    // Ã»ÓĞÕÒµ½Ö¸¶¨µÄ¼ü
-    Log(LogGrade::ERR, "Key not found in configuration file: " + key);
-    MessageBoxA(NULL, ("´íÎó£ºÅäÖÃÏîÎ´ÕÒµ½\n¼üÃû: " + key).c_str(),
-        "ÅäÖÃ´íÎó", MB_ICONWARNING | MB_OK);
-    return "";  // ·µ»Ø¿Õ×Ö·û´®±íÊ¾¼ü²»´æÔÚ
+
+    auto cfgReadEnd = std::chrono::high_resolution_clock::now();
+    auto cfgReadTime = std::chrono::duration_cast<std::chrono::milliseconds>(cfgReadEnd - cfgReadStart).count();
+
+    if (value.empty()) {
+        Log(LogGrade::WARNING, LogCode::FILE_NOT_FOUND,
+            "Key not found in configuration file: " + key +
+            " (scanned " + std::to_string(lineNum) + " lines, took " +
+            std::to_string(cfgReadTime) + "ms)");
+
+        formatErrorOutput(
+            logCodeToString(LogCode::FILE_NOT_FOUND),
+            "ConfigError",
+            "Configuration key not found",
+            "",
+            0,
+            std::string::npos,
+            "Add '" + key + " = value' to data.cfg file",
+            "https://github.com/Colasensei/PaperVisualNovel/tree/master/Docs/errors/W2001.md"
+        );
+
+        MessageBoxA(NULL, ("é”™è¯¯ï¼šé…ç½®é¡¹æœªæ‰¾åˆ°\né”®å: " + key).c_str(),
+            "é…ç½®é”™è¯¯", MB_ICONWARNING | MB_OK);
+    }
+    else {
+        
+    }
+
+    return value;
 }
 
 void updateFirstRunFlag(bool value) {
-	Log(LogGrade::INFO, "Updating FirstRunFlag in configuration file.");
+    auto updateStartTime = std::chrono::high_resolution_clock::now();
+
+    Log(LogGrade::INFO, LogCode::GAME_SAVED,
+        "Updating FirstRunFlag in configuration file to: " + std::string(value ? "1" : "0"));
+
     const std::string filename = "data.cfg";
     const std::string targetKey = "FirstRunFlag";
-    // ¶ÁÈ¡Õû¸öÎÄ¼şµ½ÄÚ´æ
+
     std::ifstream inFile(filename);
     if (!inFile.is_open()) {
-        Log(LogGrade::ERR, "Failed to open configuration file.");
-        MessageBoxA(NULL, ("´íÎó£ºÎŞ·¨´ò¿ªÎÄ¼ş " + filename).c_str(),
-            "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+            "Failed to open configuration file for reading: " + filename);
+        MessageBoxA(NULL, ("é”™è¯¯ï¼šæ— æ³•æ‰“å¼€æ–‡ä»¶ " + filename).c_str(),
+            "é”™è¯¯", MB_ICONERROR | MB_OK);
         return;
     }
 
     std::vector<std::string> lines;
     std::string line;
     bool keyFound = false;
+    int lineNum = 0;
 
     while (std::getline(inFile, line)) {
-        // ²éÕÒ°üº¬Ä¿±ê¼üµÄĞĞ
+        lineNum++;
         if (line.find(targetKey) != std::string::npos) {
-            // ·ÖÀë¼üºÍÖµ
             size_t equalsPos = line.find('=');
             if (equalsPos != std::string::npos) {
-                // ±£ÁôµÈºÅÇ°µÄ²¿·Ö£¬¸üĞÂµÈºÅºóµÄÖµ
                 std::string newLine = line.substr(0, equalsPos + 1);
                 newLine += " ";
                 newLine += (value ? "1" : "0");
 
                 lines.push_back(newLine);
                 keyFound = true;
-                Log(LogGrade::DEBUG, "Updated FirstRunFlag to " + value);
+
+                Log(LogGrade::DEBUG, LogCode::GAME_SAVED,
+                    "Updated FirstRunFlag at line " + std::to_string(lineNum) +
+                    " from \"" + line + "\" to \"" + newLine + "\"");
             }
             else {
-                // Èç¹ûÃ»ÓĞµÈºÅ£¬±£³ÖÔ­Ñù
                 lines.push_back(line);
+                Log(LogGrade::WARNING, LogCode::SAVE_CORRUPTED,
+                    "Found FirstRunFlag line without equals sign at line " +
+                    std::to_string(lineNum));
             }
         }
         else {
@@ -926,26 +1346,37 @@ void updateFirstRunFlag(bool value) {
 
     inFile.close();
 
-    // Èç¹ûÎÄ¼şÖĞÃ»ÓĞÕÒµ½FirstRunFlag£¬¿ÉÒÔÑ¡ÔñÌí¼ÓËü
     if (!keyFound) {
-        Log(LogGrade::INFO, "FirstRunFlag not found, adding it.");
+        Log(LogGrade::INFO, LogCode::GAME_SAVED,
+            "FirstRunFlag not found in file, appending at end");
         lines.push_back(targetKey + " = " + (value ? "1" : "0"));
     }
 
-    // Ğ´»ØÎÄ¼ş
     std::ofstream outFile(filename);
     if (!outFile.is_open()) {
-        Log(LogGrade::ERR, "Failed to open configuration file for writing.");
-        MessageBoxA(NULL, ("´íÎó£ºÎŞ·¨Ğ´ÈëÎÄ¼ş " + filename).c_str(),
-            "´íÎó", MB_ICONERROR | MB_OK);
+        Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED,
+            "Failed to open configuration file for writing: " + filename);
+        MessageBoxA(NULL, ("é”™è¯¯ï¼šæ— æ³•å†™å…¥æ–‡ä»¶ " + filename).c_str(),
+            "é”™è¯¯", MB_ICONERROR | MB_OK);
         return;
     }
 
+    size_t bytesWritten = 0;
     for (const auto& l : lines) {
         outFile << l << std::endl;
+        bytesWritten += l.length() + 2;
     }
-    Log(LogGrade::INFO, "Configuration file updated successfully.");
     outFile.close();
+
+    auto updateEndTime = std::chrono::high_resolution_clock::now();
+    auto updateTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(updateEndTime - updateStartTime).count();
+
+    
+
+    Log(LogGrade::INFO, LogCode::GAME_SAVED,
+        "Configuration file updated successfully. FirstRunFlag = " + std::string(value ? "1" : "0") +
+        " (" + std::to_string(bytesWritten) + " bytes written, took " +
+        std::to_string(updateTimeMs) + "ms)");
+
     return;
-   
 }
