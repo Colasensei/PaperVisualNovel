@@ -10,7 +10,41 @@
 #include "fileutils.h"
 #include "gamestate.h"
 
+
 extern bool DebugLogEnabled;
+
+/**
+ * @brief 检查并清理日志文件
+ */
+bool checkAndCleanLogFile(const std::string& logFilePath) {
+    namespace fs = std::filesystem;
+
+    if (!fs::exists(logFilePath)) {
+        return true;
+    }
+
+    try {
+        auto fileSize = fs::file_size(logFilePath);
+        const size_t MAX_LOG_SIZE = 20 * 1024 * 1024;
+
+        if (fileSize > MAX_LOG_SIZE) {
+            std::ofstream outFile(logFilePath, std::ios::trunc);
+            if (!outFile.is_open()) {
+                return false;
+            }
+
+            outFile << "[" << logtimer() << "] INFO [I1000] 日志文件已超过20MB，自动清空" << std::endl;
+            outFile.close();
+
+            std::cout << "日志文件已超过20MB，已自动清空" << std::endl;
+        }
+        return true;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "检查日志文件时出错: " << e.what() << std::endl;
+        return false;
+    }
+}
 
 std::string logGradeToString(LogGrade logGrade) {
     switch (logGrade) {
@@ -19,6 +53,41 @@ std::string logGradeToString(LogGrade logGrade) {
     case LogGrade::ERR:   return "ERROR";
     case LogGrade::DEBUG:   return "DEBUG";
     default:                return "UNKNOWN";
+    }
+}
+std::string logCodeToString(LogCode code) {
+    switch (code) {
+        // 信息类
+    case LogCode::GAME_START:       return "I1001";
+    case LogCode::GAME_LOADED:      return "I1002";
+    case LogCode::GAME_SAVED:       return "I1003";
+    case LogCode::PLUGIN_LOADED:    return "I1004";
+    case LogCode::ENDING_SAVED:     return "I1005";
+
+        // 警告类
+    case LogCode::FILE_NOT_FOUND:   return "W2001";
+    case LogCode::PLUGIN_MISSING:   return "W2002";
+    case LogCode::VERSION_MISMATCH: return "W2003";
+    case LogCode::SAVE_CORRUPTED:   return "W2004";
+    case LogCode::FALLBACK_USED:    return "W2005";
+
+        // 错误类
+    case LogCode::PARSE_ERROR:      return "E3001";
+    case LogCode::COMMAND_UNKNOWN:  return "E3002";
+    case LogCode::JUMP_INVALID:     return "E3003";
+    case LogCode::FILE_OPEN_FAILED: return "E3004";
+    case LogCode::CONDITION_INVALID:return "E3005";
+    case LogCode::PLUGIN_EXEC_FAILED: return "E3006";
+    case LogCode::MEMORY_ERROR:     return "E3007";
+
+        // 调试类
+    case LogCode::PERFORMANCE:      return "D4001";
+    case LogCode::TOKEN_START:      return "D4002";
+    case LogCode::TOKEN_COMPLETE:   return "D4003";
+    case LogCode::EXEC_START:       return "D4004";
+    case LogCode::EXEC_COMPLETE:    return "D4005";
+
+    default:                        return "U0000";
     }
 }
 
@@ -39,7 +108,7 @@ const std::map<std::string, LogGrade> logGradeMap = {
 // ==================== 控制台颜色输出 ====================
 
 void vnout(const std::string& out, double time, color color,
-           bool with_newline, bool use_typewriter_effect) {
+    bool with_newline, bool use_typewriter_effect) {
     // 设置颜色
     switch (color) {
     case black: std::cout << "\033[30m"; break;
@@ -93,6 +162,135 @@ void vnout(const std::string& out, double time, color color,
         std::cout << std::endl;
     }
     std::cout << "\033[37m";
+}
+
+// ==================== 格式化错误输出 ====================
+
+void formatErrorOutput(const std::string& errorCode,
+    const std::string& errorType,
+    const std::string& message,
+    const std::string& line,
+    size_t lineNumber,
+    size_t position,
+    const std::string& hint,
+    const std::string& docUrl) {
+
+    std::cout << "\033[31m"; // 红色
+    std::cout << "ERROR [" << errorCode << "] " << errorType << ": " << message << std::endl;
+    std::cout << "\033[37m"; // 白色
+
+    if (!line.empty()) {
+        // 显示行号和原始行内容
+        std::cout << "       > Line " << lineNumber << ": " << line << std::endl;
+
+        if (position != std::string::npos && position <= line.length()) {
+            std::cout << "         ";
+
+            // 计算字符显示宽度（考虑中文字符）
+            size_t displayPos = 0;
+            for (size_t i = 0; i < position; i++) {
+                unsigned char c = static_cast<unsigned char>(line[i]);
+                if (c >= 0x80) {
+                    // 中文字符（UTF-8 多字节）
+                    displayPos += 2;
+                    // 跳过后续字节
+                    if ((c & 0xE0) == 0xC0) i += 1;
+                    else if ((c & 0xF0) == 0xE0) i += 2;
+                    else if ((c & 0xF8) == 0xF0) i += 3;
+                }
+                else {
+                    displayPos += 1;
+                }
+            }
+
+            // 输出空格定位
+            for (size_t i = 0; i < displayPos; i++) {
+                std::cout << " ";
+            }
+
+            // 输出箭头
+            std::cout << "\033[32m^\033[37m";
+
+            // 计算 token 长度并输出波浪线
+            size_t tokenLength = 1;
+            size_t bytePos = position;
+
+            // 找到 token 的起始位置（如果不是在 token 开头）
+            while (bytePos > 0) {
+                unsigned char c = static_cast<unsigned char>(line[bytePos - 1]);
+                if (std::isspace(c) || c == '"' || c == '\'' || c == '(' ||
+                    c == '[' || c == '{' || c == '=' || c == '<' || c == '>' ||
+                    c == '!' || c == '&' || c == '|') {
+                    break;
+                }
+                bytePos--;
+            }
+
+            // 计算从正确起始位置开始的 token 长度
+            size_t startPos = bytePos;
+            while (startPos + tokenLength < line.length()) {
+                unsigned char c = static_cast<unsigned char>(line[startPos + tokenLength]);
+                if (std::isspace(c) || c == '"' || c == '\'' || c == ')' ||
+                    c == ']' || c == '}' || c == '=' || c == '<' || c == '>' ||
+                    c == '!' || c == '&' || c == '|') {
+                    break;
+                }
+
+                // 跳过 UTF-8 多字节字符
+                if (c >= 0x80) {
+                    if ((c & 0xE0) == 0xC0) tokenLength += 1;
+                    else if ((c & 0xF0) == 0xE0) tokenLength += 2;
+                    else if ((c & 0xF8) == 0xF0) tokenLength += 3;
+                }
+                tokenLength++;
+            }
+
+            // 输出波浪线
+            size_t waveCount = 0;
+            bytePos = position;
+            while (bytePos < startPos + tokenLength && bytePos < line.length()) {
+                unsigned char c = static_cast<unsigned char>(line[bytePos]);
+                if (c >= 0x80) {
+                    // 中文字符用两个波浪线
+                    std::cout << "~~";
+                    waveCount += 2;
+                    // 跳过后续字节
+                    if ((c & 0xE0) == 0xC0) bytePos += 2;
+                    else if ((c & 0xF0) == 0xE0) bytePos += 3;
+                    else if ((c & 0xF8) == 0xF0) bytePos += 4;
+                    else bytePos++;
+                }
+                else {
+                    std::cout << "~";
+                    waveCount++;
+                    bytePos++;
+                }
+            }
+
+            std::cout << "\033[37m" << std::endl;
+
+            // 调试信息（仅在开发模式下）
+#ifdef _DEBUG
+            std::cout << "\033[90m       [Debug] Position: " << position
+                << ", DisplayPos: " << displayPos
+                << ", Token start: " << startPos
+                << ", Token length: " << tokenLength
+                << ", Waves: " << waveCount << "\033[37m" << std::endl;
+#endif
+        }
+    }
+
+    if (!hint.empty()) {
+        std::cout << "\033[33m"; // 黄色
+        std::cout << "       Hint: " << hint << std::endl;
+        std::cout << "\033[37m";
+    }
+
+    if (!docUrl.empty()) {
+        std::cout << "       See: " << docUrl << std::endl;
+    }
+
+    std::cout << std::endl;
 }
 
 // ==================== 显示进度条 ====================
@@ -229,6 +427,41 @@ bool isSimilar(const std::string& input, const std::string& target, int maxDista
     return distance <= maxDistance;
 }
 
+// ==================== 日志输出函数（带编号） ====================
+
+void Log(LogGrade logGrade, LogCode code, const std::string& out) {
+    if (logGrade == LogGrade::DEBUG && !DebugLogEnabled) {
+        return;
+    }
+
+    // 日志文件路径
+    const std::string LOG_FILE_PATH = "pvn_engine.log";
+
+    // 检查并清理日志文件
+    if (!checkAndCleanLogFile(LOG_FILE_PATH)) {
+        std::cerr << "无法清理日志文件，日志写入可能失败" << std::endl;
+    }
+
+    // 格式化日志字符串
+    std::stringstream logStream;
+    logStream << logtimer() << " "
+        << logGradeToString(logGrade) << " "
+        << "[" << logCodeToString(code) << "] "
+        << out;
+
+    std::string logMessage = logStream.str();
+
+    // 写入到日志文件
+    std::ofstream logFile(LOG_FILE_PATH, std::ios::app);
+    if (!logFile.is_open()) {
+        std::cerr << "无法打开日志文件: " << LOG_FILE_PATH << std::endl;
+        return;
+    }
+
+    logFile << logMessage << std::endl;
+    logFile.close();
+}
+
 // ==================== 操作处理函数 ====================
 
 int operate() {
@@ -244,7 +477,7 @@ int operate() {
             return 0;
         }
         if (op == "ESC") {
-            Log(LogGrade::INFO, "Start to print menu");
+            Log(LogGrade::INFO, LogCode::GAME_START, "Start to print menu");
             cout << std::endl;
             // 游戏菜单选项
             std::vector<std::string> menu_options = {
@@ -260,7 +493,7 @@ int operate() {
             if (gum::GumWrapper::is_available()) {
                 try {
                     // 使用gum显示菜单选择
-                    Log(LogGrade::INFO, "Using gum for menu selection");
+                    Log(LogGrade::INFO, LogCode::GAME_START, "Using gum for menu selection");
                     selected = gum::GumWrapper::choose(menu_options);
 
                     if (!selected.empty()) {
@@ -269,14 +502,14 @@ int operate() {
                     }
                 }
                 catch (const std::exception& e) {
-                    Log(LogGrade::ERR, "Gum selection error: " + std::string(e.what()));
+                    Log(LogGrade::ERR, LogCode::PLUGIN_EXEC_FAILED, "Gum selection error: " + std::string(e.what()));
                     op2 = ""; // 清空，使用回退逻辑
                 }
             }
 
             // 如果gum不可用或失败，回退到原始方法
             if (op2.empty() || !(op2 == "1" || op2 == "2" || op2 == "3")) {
-                Log(LogGrade::INFO, "Falling back to original menu display");
+                Log(LogGrade::WARNING, LogCode::FALLBACK_USED, "Falling back to original menu display");
                 std::cout << std::endl;
                 std::cout << "\033[90m";
                 std::cout << "-----游戏菜单-----" << std::endl;
@@ -285,55 +518,55 @@ int operate() {
                 std::cout << "3. 不保存退出" << std::endl;
                 std::cout << "------------------" << std::endl;
                 std::cout << "\033[937m";
-                Log(LogGrade::INFO, "End to print menu");
+                Log(LogGrade::INFO, LogCode::GAME_START, "End to print menu");
 
                 op2 = getKeyName();
             }
 
-            Log(LogGrade::INFO, "Menu selection: " + op2);
+            Log(LogGrade::INFO, LogCode::GAME_START, "Menu selection: " + op2);
 
             // 处理选择结果
             if (op2 == "1") {
-                Log(LogGrade::INFO, "Continue game");
+                Log(LogGrade::INFO, LogCode::GAME_START, "Continue game");
                 return 0;
             }
             else if (op2 == "2") {
                 // 保存游戏
-                Log(LogGrade::INFO, "Start to save game");
+                Log(LogGrade::INFO, LogCode::GAME_SAVED, "Start to save game");
                 if (g_currentGameInfo.gameState != nullptr &&
                     !g_currentGameInfo.scriptPath.empty()) {
                     if (saveGame(g_currentGameInfo.scriptPath,
                         g_currentGameInfo.currentLine,
                         *g_currentGameInfo.gameState, "autosave")) {
-                        Log(LogGrade::INFO, "Game saved");
-                        std::cout<<ANSI_GREEN << "游戏已保存" <<"\033[37m" << std::endl;//颜色：绿色
+                        Log(LogGrade::INFO, LogCode::GAME_SAVED, "Game saved");
+                        std::cout << ANSI_GREEN << "游戏已保存" << "\033[37m" << std::endl;
                         Sleep(800);
                     }
                     else {
-                        Log(LogGrade::ERR, "Failed to save game");
-                        std::cout <<ANSI_RED << "保存失败" <<"\033[37m" << std::endl;//颜色：红色
+                        Log(LogGrade::ERR, LogCode::FILE_OPEN_FAILED, "Failed to save game");
+                        std::cout << ANSI_RED << "保存失败" << "\033[37m" << std::endl;
                         Sleep(800);
                     }
                 }
                 return 1; // 保存并退出
             }
             else if (op2 == "3") {
-                Log(LogGrade::INFO, "Quit game without saving");
+                Log(LogGrade::INFO, LogCode::GAME_START, "Quit game without saving");
                 return 1;
             }
             else {
                 // 无效输入，默认继续游戏
-                Log(LogGrade::WARNING, "Invalid menu selection, default to continue");
+                Log(LogGrade::WARNING, LogCode::COMMAND_UNKNOWN, "Invalid menu selection, default to continue");
                 return 0;
             }
         }
         // 添加调试终端功能 - 按下F12键进入调试模式
         if (op == "F12") {
-            Log(LogGrade::INFO, "Enter debug mode");
+            Log(LogGrade::INFO, LogCode::GAME_START, "Enter debug mode");
             std::cout << std::endl;
             if (readCfg("DevModeEnabled") == "1")
             {
-                Log(LogGrade::INFO, "Debug mode enabled");
+                Log(LogGrade::INFO, LogCode::GAME_START, "Debug mode enabled");
                 std::cout << "\033[90m键入'help'以获取帮助" << std::endl;
                 // 调试终端主循环
                 while (1) {
@@ -343,15 +576,15 @@ int operate() {
                     // 获取用户输入
                     std::string command;
                     std::getline(std::cin, command);
-                    Log(LogGrade::DEBUG, "Debug command: " + command);
+                    Log(LogGrade::DEBUG, LogCode::GAME_START, "Debug command: " + command);
                     if (command == "exit" || command == "quit") {
-                        Log(LogGrade::INFO, "DEBUG COMMAND: Exit debug mode");
+                        Log(LogGrade::INFO, LogCode::GAME_START, "DEBUG COMMAND: Exit debug mode");
                         std::cout << "退出调试终端" << std::endl;
                         std::cout << "\033[37m";
                         break;
                     }
                     else if (command == "help") {
-                        Log(LogGrade::INFO, "DEBUG COMMAND: Print help information");
+                        Log(LogGrade::INFO, LogCode::GAME_START, "DEBUG COMMAND: Print help information");
                         std::cout << "可用命令:" << std::endl;
                         std::cout << "  vars               - 显示所有变量及其值" << std::endl;
                         std::cout << "  set <name> <value> - 设置变量值" << std::endl;
@@ -365,7 +598,7 @@ int operate() {
                         std::cout << "  log <Grade> <Out>  - 输出日志行" << std::endl;
                     }
                     else if (command == "vars") {
-                        Log(LogGrade::INFO, "DEBUG COMMAND: Print all variables");
+                        Log(LogGrade::INFO, LogCode::GAME_START, "DEBUG COMMAND: Print all variables");
                         if (g_currentGameInfo.gameState != nullptr) {
                             auto& gameState = *g_currentGameInfo.gameState;
 
@@ -383,7 +616,7 @@ int operate() {
                                 std::cout << "总计: " << intVars.size() << " 个整数变量" << std::endl;
                             }
 
-                            std::cout<<endl <<"====================" <<endl<< std::endl;
+                            std::cout << endl << "====================" << endl << std::endl;
 
                             // 显示字符串变量
                             std::cout << "字符串变量:" << std::endl;
@@ -400,15 +633,15 @@ int operate() {
                             }
                         }
                         else {
-                            Log(LogGrade::ERR, "Game state not initialized");
+                            Log(LogGrade::ERR, LogCode::MEMORY_ERROR, "Game state not initialized");
                             std::cout << "错误：游戏状态未初始化" << std::endl;
                         }
                     }
                     else if (command.substr(0, 4) == "log ")
                     {
-                        Log(LogGrade::INFO, "DEBUG COMMAND: Print log line");
+                        Log(LogGrade::INFO, LogCode::GAME_START, "DEBUG COMMAND: Print log line");
                         // 解析日志命令：log <Grade> <Out>
-                        std::stringstream ss(command.substr(4)); // 跳过 "log " 前缀
+                        std::stringstream ss(command.substr(4));
                         std::string gradeStr, message;
 
                         // 读取日志等级
@@ -420,28 +653,24 @@ int operate() {
 
                         // 读取剩余内容作为日志消息
                         std::getline(ss, message);
-                        // 去除消息开头的空格
                         if (!message.empty() && message[0] == ' ') {
                             message = message.substr(1);
                         }
 
-                        // 查找日志等级
                         auto it = logGradeMap.find(gradeStr);
                         if (it != logGradeMap.end()) {
-                            Log(it->second, message);
+                            Log(it->second, LogCode::GAME_START, message);
                         }
                         else {
                             std::cout << "错误：无效的日志等级 '" << gradeStr << "'" << std::endl;
                             std::cout << "可用等级: info, warning, error, debug" << std::endl;
                         }
                     }
-
                     else if (command.substr(0, 4) == "set ") {
-                        Log(LogGrade::INFO, "DEBUG COMMAND: Set variable value");
+                        Log(LogGrade::INFO, LogCode::GAME_START, "DEBUG COMMAND: Set variable value");
                         if (g_currentGameInfo.gameState != nullptr) {
-                            std::stringstream ss(command.substr(4)); // 跳过 "set " 前缀
+                            std::stringstream ss(command.substr(4));
 
-                            // 获取变量名
                             std::string varName;
                             if (!(ss >> varName)) {
                                 std::cout << "用法: set <变量名> <值>" << std::endl;
@@ -449,52 +678,40 @@ int operate() {
                                 continue;
                             }
 
-                            // 读取剩余部分作为值
                             std::string valueStr;
                             std::getline(ss, valueStr);
 
-                            // 去除开头的空格
                             if (!valueStr.empty() && valueStr[0] == ' ') {
                                 valueStr = valueStr.substr(1);
                             }
 
                             if (valueStr.empty()) {
                                 std::cout << "错误：值不能为空" << std::endl;
-                                std::cout << "用法: set <变量名> <值>" << std::endl;
-                                std::cout << "       set <变量名> \"字符串值\" (设置字符串变量)" << std::endl;
                                 continue;
                             }
 
-                            // 检查是否是字符串（带引号）
                             bool isString = false;
                             std::string actualValue;
 
                             if (valueStr[0] == '"' && valueStr.back() == '"') {
-                                // 带引号的字符串
                                 isString = true;
                                 actualValue = valueStr.substr(1, valueStr.length() - 2);
                             }
                             else if (valueStr[0] == '\'' && valueStr.back() == '\'') {
-                                // 带单引号的字符串
                                 isString = true;
                                 actualValue = valueStr.substr(1, valueStr.length() - 2);
                             }
                             else {
-                                // 尝试解析为整数
                                 try {
                                     int intValue = std::stoi(valueStr);
-
-                                    // 设置整数变量
                                     g_currentGameInfo.gameState->setVar(varName, intValue);
                                     std::cout << "已设置整数变量 " << varName << " = " << intValue << std::endl;
-                                    Log(LogGrade::INFO, "Set integer variable: " + varName + " = " + std::to_string(intValue));
+                                    Log(LogGrade::INFO, LogCode::GAME_START, "Set integer variable: " + varName + " = " + std::to_string(intValue));
                                     continue;
                                 }
                                 catch (const std::invalid_argument&) {
-                                    
-                                        isString = true;
-                                        actualValue = valueStr;
-                                   
+                                    isString = true;
+                                    actualValue = valueStr;
                                 }
                                 catch (const std::out_of_range&) {
                                     std::cout << "错误：数字超出范围" << std::endl;
@@ -502,32 +719,20 @@ int operate() {
                                 }
                             }
 
-                            // 设置字符串变量
                             if (isString) {
                                 g_currentGameInfo.gameState->setStringVar(varName, actualValue);
                                 std::cout << "已设置字符串变量 " << varName << " = \"" << actualValue << "\"" << std::endl;
-
-                                // 显示字符串长度
                                 std::cout << "字符串长度: " << actualValue.length() << " 字符" << std::endl;
-
-                                // 如果字符串包含特殊字符，给出提示
-                                if (actualValue.find('\n') != std::string::npos) {
-                                    std::cout << "提示：字符串包含换行符" << std::endl;
-                                }
-                                if (actualValue.find('\t') != std::string::npos) {
-                                    std::cout << "提示：字符串包含制表符" << std::endl;
-                                }
-
-                                Log(LogGrade::INFO, "Set string variable: " + varName + " = \"" + actualValue + "\"");
+                                Log(LogGrade::INFO, LogCode::GAME_START, "Set string variable: " + varName + " = \"" + actualValue + "\"");
                             }
                         }
                         else {
-                            Log(LogGrade::ERR, "Game state not initialized");
+                            Log(LogGrade::ERR, LogCode::MEMORY_ERROR, "Game state not initialized");
                             std::cout << "错误：游戏状态未初始化" << std::endl;
                         }
                     }
                     else if (command.substr(0, 4) == "add ") {
-                        Log(LogGrade::INFO, "DEBUG COMMAND: Add value to variable");
+                        Log(LogGrade::INFO, LogCode::GAME_START, "DEBUG COMMAND: Add value to variable");
                         if (g_currentGameInfo.gameState != nullptr) {
                             std::stringstream ss(command.substr(4));
                             std::string varName;
@@ -547,7 +752,7 @@ int operate() {
                         }
                     }
                     else if (command == "history") {
-                        Log(LogGrade::INFO, "DEBUG COMMAND: Print choice history");
+                        Log(LogGrade::INFO, LogCode::GAME_START, "DEBUG COMMAND: Print choice history");
                         if (g_currentGameInfo.gameState != nullptr) {
                             auto& history = g_currentGameInfo.gameState->getChoiceHistory();
                             std::cout << "选择历史 (" << history.size() << " 项):" << std::endl;
@@ -562,7 +767,7 @@ int operate() {
                         }
                     }
                     else if (command == "endings") {
-                        Log(LogGrade::INFO, "DEBUG COMMAND: Print collected endings");
+                        Log(LogGrade::INFO, LogCode::GAME_START, "DEBUG COMMAND: Print collected endings");
                         if (g_currentGameInfo.gameState != nullptr) {
                             auto& gameState = *g_currentGameInfo.gameState;
                             int collected = gameState.getCollectedEndingsCount();
@@ -588,7 +793,7 @@ int operate() {
                         }
                     }
                     else if (command == "info") {
-                        Log(LogGrade::INFO, "DEBUG COMMAND: Print game info");
+                        Log(LogGrade::INFO, LogCode::GAME_START, "DEBUG COMMAND: Print game info");
                         std::cout << "当前游戏信息:" << std::endl;
                         std::cout << "----------------" << std::endl;
                         std::cout << "脚本路径: " << g_currentGameInfo.scriptPath << std::endl;
@@ -602,19 +807,18 @@ int operate() {
                         }
                     }
                     else if (command.substr(0, 5) == "goto ") {
-                        Log(LogGrade::INFO, "DEBUG COMMAND: Go to specific line");
+                        Log(LogGrade::INFO, LogCode::GAME_START, "DEBUG COMMAND: Go to specific line");
                         std::stringstream ss(command.substr(5));
                         int lineNum;
 
                         if (ss >> lineNum) {
                             if (lineNum > 0) {
-                                // 这是一个特殊的返回值，告诉调用者要跳转到指定行
-                                g_currentGameInfo.currentLine = lineNum - 1; // 转换为0-based索引
+                                g_currentGameInfo.currentLine = lineNum - 1;
                                 std::cout << "将跳转到第 " << lineNum << " 行" << std::endl;
                                 std::cout << "退出调试终端并继续游戏..." << std::endl;
                                 cout << std::endl;
                                 std::cout << "\033[37m";
-                                return 3; // 特殊返回值表示跳转
+                                return 3;
                             }
                             else {
                                 std::cout << "错误：行号必须为正数" << std::endl;
@@ -625,17 +829,15 @@ int operate() {
                         }
                     }
                     else if (command.empty()) {
-                        // 空命令，不做任何操作
                     }
                     else {
-                        // 检查是否有相似命令
                         for (const auto& target : validCommands) {
                             if (isSimilar(command, target)) {
                                 std::cout << "Do you mean: " << target << " ? " << std::endl;
                                 break;
                             }
                         }
-                        Log(LogGrade::ERR, "Unknown command: " + command);
+                        Log(LogGrade::ERR, LogCode::COMMAND_UNKNOWN, "Unknown command: " + command);
                         std::cout << "未知命令: " << command << std::endl;
                         std::cout << "\033[90m";
                         std::cout << "输入 'help' 查看可用命令" << std::endl;
@@ -643,97 +845,10 @@ int operate() {
                 }
             }
             else {
-                Log(LogGrade::WARNING, "The Debug is not enabled");
+                Log(LogGrade::WARNING, LogCode::FALLBACK_USED, "The Debug is not enabled");
                 std::cout << "\033[90m" << "调试模式未启用" << "\033[37m" << std::endl;
-                
             }
-            
-            
-            
-
         }
     }
 }
 
-/**
- * @brief 检查并清理日志文件
- * @param logFilePath 日志文件路径
- * @return 是否成功清理
- */
-bool checkAndCleanLogFile(const std::string& logFilePath) {
-    namespace fs = std::filesystem;
-
-    // 检查文件是否存在
-    if (!fs::exists(logFilePath)) {
-        return true;
-    }
-
-    try {
-        // 获取文件大小
-        auto fileSize = fs::file_size(logFilePath);
-        const size_t MAX_LOG_SIZE = 20 * 1024 * 1024; // 20MB
-
-        // 如果文件超过20MB，清空文件
-        if (fileSize > MAX_LOG_SIZE) {
-            std::ofstream outFile(logFilePath, std::ios::trunc);
-            if (!outFile.is_open()) {
-                return false;
-            }
-
-            // 写入清空说明
-            outFile << "[" << logtimer() << "] INFO 日志文件已超过20MB，自动清空" << std::endl;
-            outFile.close();
-
-            // 输出控制台提示
-            std::cout << "日志文件已超过20MB，已自动清空" << std::endl;
-        }
-        return true;
-    }
-    catch (const std::exception& e) {
-        std::cerr << "检查日志文件时出错: " << e.what() << std::endl;
-        return false;
-    }
-}
-
-
-
-/**
- * @brief 写入日志到文件
- */
-void Log(LogGrade logGrade, const std::string& out) {
-
-    if (logGrade == LogGrade::DEBUG)
-    {
-        if (!DebugLogEnabled)
-        {
-            return;// 如果调试日志未启用，则返回
-        }
-    }
-    // 日志文件路径
-    const std::string LOG_FILE_PATH = "pvn_engine.log";
-
-    // 检查并清理日志文件
-    if (!checkAndCleanLogFile(LOG_FILE_PATH)) {
-        std::cerr << "无法清理日志文件，日志写入可能失败" << std::endl;
-    }
-
-    // 格式化日志字符串
-    std::stringstream logStream;
-	logStream << logtimer() << " "
-        << logGradeToString(logGrade) << " "
-        << out;
-
-    std::string logMessage = logStream.str();
-
-    
-
-    // 写入到日志文件
-    std::ofstream logFile(LOG_FILE_PATH, std::ios::app);
-    if (!logFile.is_open()) {
-        std::cerr << "无法打开日志文件: " << LOG_FILE_PATH << std::endl;
-        return;
-    }
-
-    logFile << logMessage << std::endl;
-    logFile.close();
-}
