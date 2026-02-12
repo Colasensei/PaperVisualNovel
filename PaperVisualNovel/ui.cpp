@@ -1,4 +1,4 @@
-// ui.cpp
+ï»¿// ui.cpp
 #include "ui.h"
 #include <Windows.h>
 #include <chrono>
@@ -23,12 +23,12 @@ std::string logGradeToString(LogGrade logGrade) {
 }
 
 
-// ÓĞĞ§ÃüÁîÁĞ±í
+// æœ‰æ•ˆå‘½ä»¤åˆ—è¡¨
 const std::vector<std::string> validCommands = {
     "help", "vars", "set", "add", "history", "endings", "info", "goto", "exit", "quit", "log"
 };
 
-// ÈÕÖ¾µÈ¼¶Ó³Éä±í
+// æ—¥å¿—ç­‰çº§æ˜ å°„è¡¨
 const std::map<std::string, LogGrade> logGradeMap = {
     {"info", LogGrade::INFO},
     {"warning", LogGrade::WARNING},
@@ -36,11 +36,11 @@ const std::map<std::string, LogGrade> logGradeMap = {
     {"debug", LogGrade::DEBUG}
 };
 
-// ==================== ¿ØÖÆÌ¨ÑÕÉ«Êä³ö ====================
+// ==================== æ§åˆ¶å°é¢œè‰²è¾“å‡º ====================
 
 void vnout(const std::string& out, double time, color color,
            bool with_newline, bool use_typewriter_effect) {
-    // ÉèÖÃÑÕÉ«
+    // è®¾ç½®é¢œè‰²
     switch (color) {
     case black: std::cout << "\033[30m"; break;
     case blue: std::cout << "\033[34m"; break;
@@ -95,7 +95,7 @@ void vnout(const std::string& out, double time, color color,
     std::cout << "\033[37m";
 }
 
-// ==================== ÏÔÊ¾½ø¶ÈÌõ ====================
+// ==================== æ˜¾ç¤ºè¿›åº¦æ¡ ====================
 
 void simpleProgressBar(float progress) {
     int barWidth = 50;
@@ -110,10 +110,10 @@ void simpleProgressBar(float progress) {
         else std::cout << " ";
     }
     std::cout << "] " << static_cast<int>(progress * 100.0f) << "%\r";
-    std::cout.flush();
+    std::cout.flush();  // æ¸…é™¤ç¼“å†²åŒºï¼Œç¡®ä¿è¿›åº¦æ¡ç«‹å³æ˜¾ç¤º
 }
 
-// ==================== »ñÈ¡µ±Ç°Ê±¼ä×Ö·û´® ====================
+// ==================== è·å–å½“å‰æ—¶é—´å­—ç¬¦ä¸² ====================
 
 std::string logtimer() {
     time_t now = time(nullptr);
@@ -124,7 +124,7 @@ std::string logtimer() {
     return '[' + ss.str() + ']';
 }
 
-// ==================== »ñÈ¡°´¼üÃû³Æ ====================
+// ==================== è·å–æŒ‰é”®åç§° ====================
 
 std::string getKeyName() {
     int key = _getch();
@@ -184,7 +184,7 @@ std::string getKeyName() {
     }
 }
 
-// ==================== ¼ÆËã±à¼­¾àÀë ====================
+// ==================== è®¡ç®—ç¼–è¾‘è·ç¦» ====================
 
 int calculateEditDistance(const std::string& s1, const std::string& s2) {
     const int m = s1.length();
@@ -212,27 +212,27 @@ int calculateEditDistance(const std::string& s1, const std::string& s2) {
     return dp[m][n];
 }
 
-// ==================== ¼ì²é×Ö·û´®ÏàËÆ¶È ====================
+// ==================== æ£€æŸ¥å­—ç¬¦ä¸²ç›¸ä¼¼åº¦ ====================
 
 bool isSimilar(const std::string& input, const std::string& target, int maxDistance) {
-    // ×ª»»ÎªĞ¡Ğ´½øĞĞ²»Çø·Ö´óĞ¡Ğ´µÄ±È½Ï
+    // è½¬æ¢ä¸ºå°å†™è¿›è¡Œä¸åŒºåˆ†å¤§å°å†™çš„æ¯”è¾ƒ
     std::string lowerInput = input;
     std::string lowerTarget = target;
 
     std::transform(lowerInput.begin(), lowerInput.end(), lowerInput.begin(), ::tolower);
     std::transform(lowerTarget.begin(), lowerTarget.end(), lowerTarget.begin(), ::tolower);
 
-    // ¼ÆËã±à¼­¾àÀë
+    // è®¡ç®—ç¼–è¾‘è·ç¦»
     int distance = calculateEditDistance(lowerInput, lowerTarget);
 
-    // Èç¹û±à¼­¾àÀëĞ¡ÓÚµÈÓÚãĞÖµ£¬ÔòÈÏÎªÏàËÆ
+    // å¦‚æœç¼–è¾‘è·ç¦»å°äºç­‰äºé˜ˆå€¼ï¼Œåˆ™è®¤ä¸ºç›¸ä¼¼
     return distance <= maxDistance;
 }
 
-// ==================== ²Ù×÷´¦Àíº¯Êı ====================
+// ==================== æ“ä½œå¤„ç†å‡½æ•° ====================
 
 int operate() {
-    // Íâ²¿È«¾Ö±äÁ¿ÉùÃ÷
+    // å¤–éƒ¨å…¨å±€å˜é‡å£°æ˜
     extern CurrentGameInfo g_currentGameInfo;
     extern bool saveGame(const std::string&, size_t, const GameState&, const std::string&);
     extern void Run();
@@ -246,43 +246,43 @@ int operate() {
         if (op == "ESC") {
             Log(LogGrade::INFO, "Start to print menu");
             cout << std::endl;
-            // ÓÎÏ·²Ëµ¥Ñ¡Ïî
+            // æ¸¸æˆèœå•é€‰é¡¹
             std::vector<std::string> menu_options = {
-                "1. ¼ÌĞøÓÎÏ·",
-                "2. ±£´æ²¢ÍË³ö",
-                "3. ²»±£´æÍË³ö"
+                "1. ç»§ç»­æ¸¸æˆ",
+                "2. ä¿å­˜å¹¶é€€å‡º",
+                "3. ä¸ä¿å­˜é€€å‡º"
             };
 
             std::string selected = "";
             std::string op2 = "";
 
-            // ¼ì²égumÊÇ·ñ¿ÉÓÃ
+            // æ£€æŸ¥gumæ˜¯å¦å¯ç”¨
             if (gum::GumWrapper::is_available()) {
                 try {
-                    // Ê¹ÓÃgumÏÔÊ¾²Ëµ¥Ñ¡Ôñ
+                    // ä½¿ç”¨gumæ˜¾ç¤ºèœå•é€‰æ‹©
                     Log(LogGrade::INFO, "Using gum for menu selection");
                     selected = gum::GumWrapper::choose(menu_options);
 
                     if (!selected.empty()) {
-                        // ÌáÈ¡µÚÒ»¸ö×Ö·û×÷ÎªÑ¡ÏîÊı×Ö
+                        // æå–ç¬¬ä¸€ä¸ªå­—ç¬¦ä½œä¸ºé€‰é¡¹æ•°å­—
                         op2 = selected.substr(0, 1);
                     }
                 }
                 catch (const std::exception& e) {
                     Log(LogGrade::ERR, "Gum selection error: " + std::string(e.what()));
-                    op2 = ""; // Çå¿Õ£¬Ê¹ÓÃ»ØÍËÂß¼­
+                    op2 = ""; // æ¸…ç©ºï¼Œä½¿ç”¨å›é€€é€»è¾‘
                 }
             }
 
-            // Èç¹ûgum²»¿ÉÓÃ»òÊ§°Ü£¬»ØÍËµ½Ô­Ê¼·½·¨
+            // å¦‚æœgumä¸å¯ç”¨æˆ–å¤±è´¥ï¼Œå›é€€åˆ°åŸå§‹æ–¹æ³•
             if (op2.empty() || !(op2 == "1" || op2 == "2" || op2 == "3")) {
                 Log(LogGrade::INFO, "Falling back to original menu display");
                 std::cout << std::endl;
                 std::cout << "\033[90m";
-                std::cout << "-----ÓÎÏ·²Ëµ¥-----" << std::endl;
-                std::cout << "1. ¼ÌĞøÓÎÏ·" << std::endl;
-                std::cout << "2. ±£´æ²¢ÍË³ö" << std::endl;
-                std::cout << "3. ²»±£´æÍË³ö" << std::endl;
+                std::cout << "-----æ¸¸æˆèœå•-----" << std::endl;
+                std::cout << "1. ç»§ç»­æ¸¸æˆ" << std::endl;
+                std::cout << "2. ä¿å­˜å¹¶é€€å‡º" << std::endl;
+                std::cout << "3. ä¸ä¿å­˜é€€å‡º" << std::endl;
                 std::cout << "------------------" << std::endl;
                 std::cout << "\033[937m";
                 Log(LogGrade::INFO, "End to print menu");
@@ -292,13 +292,13 @@ int operate() {
 
             Log(LogGrade::INFO, "Menu selection: " + op2);
 
-            // ´¦ÀíÑ¡Ôñ½á¹û
+            // å¤„ç†é€‰æ‹©ç»“æœ
             if (op2 == "1") {
                 Log(LogGrade::INFO, "Continue game");
                 return 0;
             }
             else if (op2 == "2") {
-                // ±£´æÓÎÏ·
+                // ä¿å­˜æ¸¸æˆ
                 Log(LogGrade::INFO, "Start to save game");
                 if (g_currentGameInfo.gameState != nullptr &&
                     !g_currentGameInfo.scriptPath.empty()) {
@@ -306,187 +306,187 @@ int operate() {
                         g_currentGameInfo.currentLine,
                         *g_currentGameInfo.gameState, "autosave")) {
                         Log(LogGrade::INFO, "Game saved");
-                        std::cout<<ANSI_GREEN << "ÓÎÏ·ÒÑ±£´æ" <<"\033[37m" << std::endl;//ÑÕÉ«£ºÂÌÉ«
+                        std::cout<<ANSI_GREEN << "æ¸¸æˆå·²ä¿å­˜" <<"\033[37m" << std::endl;//é¢œè‰²ï¼šç»¿è‰²
                         Sleep(800);
                     }
                     else {
                         Log(LogGrade::ERR, "Failed to save game");
-                        std::cout <<ANSI_RED << "±£´æÊ§°Ü" <<"\033[37m" << std::endl;//ÑÕÉ«£ººìÉ«
+                        std::cout <<ANSI_RED << "ä¿å­˜å¤±è´¥" <<"\033[37m" << std::endl;//é¢œè‰²ï¼šçº¢è‰²
                         Sleep(800);
                     }
                 }
-                return 1; // ±£´æ²¢ÍË³ö
+                return 1; // ä¿å­˜å¹¶é€€å‡º
             }
             else if (op2 == "3") {
                 Log(LogGrade::INFO, "Quit game without saving");
                 return 1;
             }
             else {
-                // ÎŞĞ§ÊäÈë£¬Ä¬ÈÏ¼ÌĞøÓÎÏ·
+                // æ— æ•ˆè¾“å…¥ï¼Œé»˜è®¤ç»§ç»­æ¸¸æˆ
                 Log(LogGrade::WARNING, "Invalid menu selection, default to continue");
                 return 0;
             }
         }
-        // Ìí¼Óµ÷ÊÔÖÕ¶Ë¹¦ÄÜ - °´ÏÂF12¼ü½øÈëµ÷ÊÔÄ£Ê½
+        // æ·»åŠ è°ƒè¯•ç»ˆç«¯åŠŸèƒ½ - æŒ‰ä¸‹F12é”®è¿›å…¥è°ƒè¯•æ¨¡å¼
         if (op == "F12") {
             Log(LogGrade::INFO, "Enter debug mode");
             std::cout << std::endl;
             if (readCfg("DevModeEnabled") == "1")
             {
                 Log(LogGrade::INFO, "Debug mode enabled");
-                std::cout << "\033[90m¼üÈë'help'ÒÔ»ñÈ¡°ïÖú" << std::endl;
-                // µ÷ÊÔÖÕ¶ËÖ÷Ñ­»·
+                std::cout << "\033[90mé”®å…¥'help'ä»¥è·å–å¸®åŠ©" << std::endl;
+                // è°ƒè¯•ç»ˆç«¯ä¸»å¾ªç¯
                 while (1) {
                     std::cout << "\033[90m";
                     std::cout << std::endl << "Debug> ";
 
-                    // »ñÈ¡ÓÃ»§ÊäÈë
+                    // è·å–ç”¨æˆ·è¾“å…¥
                     std::string command;
                     std::getline(std::cin, command);
                     Log(LogGrade::DEBUG, "Debug command: " + command);
                     if (command == "exit" || command == "quit") {
                         Log(LogGrade::INFO, "DEBUG COMMAND: Exit debug mode");
-                        std::cout << "ÍË³öµ÷ÊÔÖÕ¶Ë" << std::endl;
+                        std::cout << "é€€å‡ºè°ƒè¯•ç»ˆç«¯" << std::endl;
                         std::cout << "\033[37m";
                         break;
                     }
                     else if (command == "help") {
                         Log(LogGrade::INFO, "DEBUG COMMAND: Print help information");
-                        std::cout << "¿ÉÓÃÃüÁî:" << std::endl;
-                        std::cout << "  vars               - ÏÔÊ¾ËùÓĞ±äÁ¿¼°ÆäÖµ" << std::endl;
-                        std::cout << "  set <name> <value> - ÉèÖÃ±äÁ¿Öµ" << std::endl;
-                        std::cout << "  add <name> <value> - Ôö¼Ó±äÁ¿Öµ" << std::endl;
-                        std::cout << "  history            - ÏÔÊ¾Ñ¡ÔñÀúÊ·" << std::endl;
-                        std::cout << "  endings            - ÏÔÊ¾½á¾ÖÊÕ¼¯Çé¿ö" << std::endl;
-                        std::cout << "  info               - ÏÔÊ¾µ±Ç°ÓÎÏ·ĞÅÏ¢" << std::endl;
-                        std::cout << "  goto <line>        - Ìø×ªµ½Ö¸¶¨ĞĞºÅ" << std::endl;
-                        std::cout << "  help               - ÏÔÊ¾´Ë°ïÖúĞÅÏ¢" << std::endl;
-                        std::cout << "  exit/quit          - ÍË³öµ÷ÊÔÖÕ¶Ë" << std::endl;
-                        std::cout << "  log <Grade> <Out>  - Êä³öÈÕÖ¾ĞĞ" << std::endl;
+                        std::cout << "å¯ç”¨å‘½ä»¤:" << std::endl;
+                        std::cout << "  vars               - æ˜¾ç¤ºæ‰€æœ‰å˜é‡åŠå…¶å€¼" << std::endl;
+                        std::cout << "  set <name> <value> - è®¾ç½®å˜é‡å€¼" << std::endl;
+                        std::cout << "  add <name> <value> - å¢åŠ å˜é‡å€¼" << std::endl;
+                        std::cout << "  history            - æ˜¾ç¤ºé€‰æ‹©å†å²" << std::endl;
+                        std::cout << "  endings            - æ˜¾ç¤ºç»“å±€æ”¶é›†æƒ…å†µ" << std::endl;
+                        std::cout << "  info               - æ˜¾ç¤ºå½“å‰æ¸¸æˆä¿¡æ¯" << std::endl;
+                        std::cout << "  goto <line>        - è·³è½¬åˆ°æŒ‡å®šè¡Œå·" << std::endl;
+                        std::cout << "  help               - æ˜¾ç¤ºæ­¤å¸®åŠ©ä¿¡æ¯" << std::endl;
+                        std::cout << "  exit/quit          - é€€å‡ºè°ƒè¯•ç»ˆç«¯" << std::endl;
+                        std::cout << "  log <Grade> <Out>  - è¾“å‡ºæ—¥å¿—è¡Œ" << std::endl;
                     }
                     else if (command == "vars") {
                         Log(LogGrade::INFO, "DEBUG COMMAND: Print all variables");
                         if (g_currentGameInfo.gameState != nullptr) {
                             auto& gameState = *g_currentGameInfo.gameState;
 
-                            // ÏÔÊ¾ÕûÊı±äÁ¿
-                            std::cout << "ÕûÊı±äÁ¿:" << std::endl;
+                            // æ˜¾ç¤ºæ•´æ•°å˜é‡
+                            std::cout << "æ•´æ•°å˜é‡:" << std::endl;
                             auto& intVars = gameState.getAllVariables();
 
                             if (intVars.empty()) {
-                                std::cout << "ÎŞÕûÊı±äÁ¿" << std::endl;
+                                std::cout << "æ— æ•´æ•°å˜é‡" << std::endl;
                             }
                             else {
                                 for (const auto& var : intVars) {
                                     std::cout << var.first << " = " << var.second << std::endl;
                                 }
-                                std::cout << "×Ü¼Æ: " << intVars.size() << " ¸öÕûÊı±äÁ¿" << std::endl;
+                                std::cout << "æ€»è®¡: " << intVars.size() << " ä¸ªæ•´æ•°å˜é‡" << std::endl;
                             }
 
                             std::cout<<endl <<"====================" <<endl<< std::endl;
 
-                            // ÏÔÊ¾×Ö·û´®±äÁ¿
-                            std::cout << "×Ö·û´®±äÁ¿:" << std::endl;
+                            // æ˜¾ç¤ºå­—ç¬¦ä¸²å˜é‡
+                            std::cout << "å­—ç¬¦ä¸²å˜é‡:" << std::endl;
                             auto& strVars = gameState.getAllStringVariables();
 
                             if (strVars.empty()) {
-                                std::cout << "ÎŞ×Ö·û´®±äÁ¿" << std::endl;
+                                std::cout << "æ— å­—ç¬¦ä¸²å˜é‡" << std::endl;
                             }
                             else {
                                 for (const auto& var : strVars) {
                                     std::cout << var.first << " = \"" << var.second << "\"" << std::endl;
                                 }
-                                std::cout << "×Ü¼Æ: " << strVars.size() << " ¸ö×Ö·û´®±äÁ¿" << std::endl;
+                                std::cout << "æ€»è®¡: " << strVars.size() << " ä¸ªå­—ç¬¦ä¸²å˜é‡" << std::endl;
                             }
                         }
                         else {
                             Log(LogGrade::ERR, "Game state not initialized");
-                            std::cout << "´íÎó£ºÓÎÏ·×´Ì¬Î´³õÊ¼»¯" << std::endl;
+                            std::cout << "é”™è¯¯ï¼šæ¸¸æˆçŠ¶æ€æœªåˆå§‹åŒ–" << std::endl;
                         }
                     }
                     else if (command.substr(0, 4) == "log ")
                     {
                         Log(LogGrade::INFO, "DEBUG COMMAND: Print log line");
-                        // ½âÎöÈÕÖ¾ÃüÁî£ºlog <Grade> <Out>
-                        std::stringstream ss(command.substr(4)); // Ìø¹ı "log " Ç°×º
+                        // è§£ææ—¥å¿—å‘½ä»¤ï¼šlog <Grade> <Out>
+                        std::stringstream ss(command.substr(4)); // è·³è¿‡ "log " å‰ç¼€
                         std::string gradeStr, message;
 
-                        // ¶ÁÈ¡ÈÕÖ¾µÈ¼¶
+                        // è¯»å–æ—¥å¿—ç­‰çº§
                         if (!(ss >> gradeStr)) {
-                            std::cout << "ÓÃ·¨: log <Grade> <Out>" << std::endl;
-                            std::cout << "¿ÉÓÃµÈ¼¶: info, warning, error, debug" << std::endl;
+                            std::cout << "ç”¨æ³•: log <Grade> <Out>" << std::endl;
+                            std::cout << "å¯ç”¨ç­‰çº§: info, warning, error, debug" << std::endl;
                             continue;
                         }
 
-                        // ¶ÁÈ¡Ê£ÓàÄÚÈİ×÷ÎªÈÕÖ¾ÏûÏ¢
+                        // è¯»å–å‰©ä½™å†…å®¹ä½œä¸ºæ—¥å¿—æ¶ˆæ¯
                         std::getline(ss, message);
-                        // È¥³ıÏûÏ¢¿ªÍ·µÄ¿Õ¸ñ
+                        // å»é™¤æ¶ˆæ¯å¼€å¤´çš„ç©ºæ ¼
                         if (!message.empty() && message[0] == ' ') {
                             message = message.substr(1);
                         }
 
-                        // ²éÕÒÈÕÖ¾µÈ¼¶
+                        // æŸ¥æ‰¾æ—¥å¿—ç­‰çº§
                         auto it = logGradeMap.find(gradeStr);
                         if (it != logGradeMap.end()) {
                             Log(it->second, message);
                         }
                         else {
-                            std::cout << "´íÎó£ºÎŞĞ§µÄÈÕÖ¾µÈ¼¶ '" << gradeStr << "'" << std::endl;
-                            std::cout << "¿ÉÓÃµÈ¼¶: info, warning, error, debug" << std::endl;
+                            std::cout << "é”™è¯¯ï¼šæ— æ•ˆçš„æ—¥å¿—ç­‰çº§ '" << gradeStr << "'" << std::endl;
+                            std::cout << "å¯ç”¨ç­‰çº§: info, warning, error, debug" << std::endl;
                         }
                     }
 
                     else if (command.substr(0, 4) == "set ") {
                         Log(LogGrade::INFO, "DEBUG COMMAND: Set variable value");
                         if (g_currentGameInfo.gameState != nullptr) {
-                            std::stringstream ss(command.substr(4)); // Ìø¹ı "set " Ç°×º
+                            std::stringstream ss(command.substr(4)); // è·³è¿‡ "set " å‰ç¼€
 
-                            // »ñÈ¡±äÁ¿Ãû
+                            // è·å–å˜é‡å
                             std::string varName;
                             if (!(ss >> varName)) {
-                                std::cout << "ÓÃ·¨: set <±äÁ¿Ãû> <Öµ>" << std::endl;
-                                std::cout << "       set <±äÁ¿Ãû> \"×Ö·û´®Öµ\" (ÉèÖÃ×Ö·û´®±äÁ¿)" << std::endl;
+                                std::cout << "ç”¨æ³•: set <å˜é‡å> <å€¼>" << std::endl;
+                                std::cout << "       set <å˜é‡å> \"å­—ç¬¦ä¸²å€¼\" (è®¾ç½®å­—ç¬¦ä¸²å˜é‡)" << std::endl;
                                 continue;
                             }
 
-                            // ¶ÁÈ¡Ê£Óà²¿·Ö×÷ÎªÖµ
+                            // è¯»å–å‰©ä½™éƒ¨åˆ†ä½œä¸ºå€¼
                             std::string valueStr;
                             std::getline(ss, valueStr);
 
-                            // È¥³ı¿ªÍ·µÄ¿Õ¸ñ
+                            // å»é™¤å¼€å¤´çš„ç©ºæ ¼
                             if (!valueStr.empty() && valueStr[0] == ' ') {
                                 valueStr = valueStr.substr(1);
                             }
 
                             if (valueStr.empty()) {
-                                std::cout << "´íÎó£ºÖµ²»ÄÜÎª¿Õ" << std::endl;
-                                std::cout << "ÓÃ·¨: set <±äÁ¿Ãû> <Öµ>" << std::endl;
-                                std::cout << "       set <±äÁ¿Ãû> \"×Ö·û´®Öµ\" (ÉèÖÃ×Ö·û´®±äÁ¿)" << std::endl;
+                                std::cout << "é”™è¯¯ï¼šå€¼ä¸èƒ½ä¸ºç©º" << std::endl;
+                                std::cout << "ç”¨æ³•: set <å˜é‡å> <å€¼>" << std::endl;
+                                std::cout << "       set <å˜é‡å> \"å­—ç¬¦ä¸²å€¼\" (è®¾ç½®å­—ç¬¦ä¸²å˜é‡)" << std::endl;
                                 continue;
                             }
 
-                            // ¼ì²éÊÇ·ñÊÇ×Ö·û´®£¨´øÒıºÅ£©
+                            // æ£€æŸ¥æ˜¯å¦æ˜¯å­—ç¬¦ä¸²ï¼ˆå¸¦å¼•å·ï¼‰
                             bool isString = false;
                             std::string actualValue;
 
                             if (valueStr[0] == '"' && valueStr.back() == '"') {
-                                // ´øÒıºÅµÄ×Ö·û´®
+                                // å¸¦å¼•å·çš„å­—ç¬¦ä¸²
                                 isString = true;
                                 actualValue = valueStr.substr(1, valueStr.length() - 2);
                             }
                             else if (valueStr[0] == '\'' && valueStr.back() == '\'') {
-                                // ´øµ¥ÒıºÅµÄ×Ö·û´®
+                                // å¸¦å•å¼•å·çš„å­—ç¬¦ä¸²
                                 isString = true;
                                 actualValue = valueStr.substr(1, valueStr.length() - 2);
                             }
                             else {
-                                // ³¢ÊÔ½âÎöÎªÕûÊı
+                                // å°è¯•è§£æä¸ºæ•´æ•°
                                 try {
                                     int intValue = std::stoi(valueStr);
 
-                                    // ÉèÖÃÕûÊı±äÁ¿
+                                    // è®¾ç½®æ•´æ•°å˜é‡
                                     g_currentGameInfo.gameState->setVar(varName, intValue);
-                                    std::cout << "ÒÑÉèÖÃÕûÊı±äÁ¿ " << varName << " = " << intValue << std::endl;
+                                    std::cout << "å·²è®¾ç½®æ•´æ•°å˜é‡ " << varName << " = " << intValue << std::endl;
                                     Log(LogGrade::INFO, "Set integer variable: " + varName + " = " + std::to_string(intValue));
                                     continue;
                                 }
@@ -497,25 +497,25 @@ int operate() {
                                    
                                 }
                                 catch (const std::out_of_range&) {
-                                    std::cout << "´íÎó£ºÊı×Ö³¬³ö·¶Î§" << std::endl;
+                                    std::cout << "é”™è¯¯ï¼šæ•°å­—è¶…å‡ºèŒƒå›´" << std::endl;
                                     continue;
                                 }
                             }
 
-                            // ÉèÖÃ×Ö·û´®±äÁ¿
+                            // è®¾ç½®å­—ç¬¦ä¸²å˜é‡
                             if (isString) {
                                 g_currentGameInfo.gameState->setStringVar(varName, actualValue);
-                                std::cout << "ÒÑÉèÖÃ×Ö·û´®±äÁ¿ " << varName << " = \"" << actualValue << "\"" << std::endl;
+                                std::cout << "å·²è®¾ç½®å­—ç¬¦ä¸²å˜é‡ " << varName << " = \"" << actualValue << "\"" << std::endl;
 
-                                // ÏÔÊ¾×Ö·û´®³¤¶È
-                                std::cout << "×Ö·û´®³¤¶È: " << actualValue.length() << " ×Ö·û" << std::endl;
+                                // æ˜¾ç¤ºå­—ç¬¦ä¸²é•¿åº¦
+                                std::cout << "å­—ç¬¦ä¸²é•¿åº¦: " << actualValue.length() << " å­—ç¬¦" << std::endl;
 
-                                // Èç¹û×Ö·û´®°üº¬ÌØÊâ×Ö·û£¬¸ø³öÌáÊ¾
+                                // å¦‚æœå­—ç¬¦ä¸²åŒ…å«ç‰¹æ®Šå­—ç¬¦ï¼Œç»™å‡ºæç¤º
                                 if (actualValue.find('\n') != std::string::npos) {
-                                    std::cout << "ÌáÊ¾£º×Ö·û´®°üº¬»»ĞĞ·û" << std::endl;
+                                    std::cout << "æç¤ºï¼šå­—ç¬¦ä¸²åŒ…å«æ¢è¡Œç¬¦" << std::endl;
                                 }
                                 if (actualValue.find('\t') != std::string::npos) {
-                                    std::cout << "ÌáÊ¾£º×Ö·û´®°üº¬ÖÆ±í·û" << std::endl;
+                                    std::cout << "æç¤ºï¼šå­—ç¬¦ä¸²åŒ…å«åˆ¶è¡¨ç¬¦" << std::endl;
                                 }
 
                                 Log(LogGrade::INFO, "Set string variable: " + varName + " = \"" + actualValue + "\"");
@@ -523,7 +523,7 @@ int operate() {
                         }
                         else {
                             Log(LogGrade::ERR, "Game state not initialized");
-                            std::cout << "´íÎó£ºÓÎÏ·×´Ì¬Î´³õÊ¼»¯" << std::endl;
+                            std::cout << "é”™è¯¯ï¼šæ¸¸æˆçŠ¶æ€æœªåˆå§‹åŒ–" << std::endl;
                         }
                     }
                     else if (command.substr(0, 4) == "add ") {
@@ -535,22 +535,22 @@ int operate() {
 
                             if (ss >> varName >> value) {
                                 g_currentGameInfo.gameState->addVar(varName, value);
-                                std::cout << "ÒÑÔö¼Ó±äÁ¿ " << varName << " += " << value << std::endl;
-                                std::cout << "µ±Ç°Öµ: " << g_currentGameInfo.gameState->getVar(varName) << std::endl;
+                                std::cout << "å·²å¢åŠ å˜é‡ " << varName << " += " << value << std::endl;
+                                std::cout << "å½“å‰å€¼: " << g_currentGameInfo.gameState->getVar(varName) << std::endl;
                             }
                             else {
-                                std::cout << "ÓÃ·¨: add <±äÁ¿Ãû> <Öµ>" << std::endl;
+                                std::cout << "ç”¨æ³•: add <å˜é‡å> <å€¼>" << std::endl;
                             }
                         }
                         else {
-                            std::cout << "´íÎó£ºÓÎÏ·×´Ì¬Î´³õÊ¼»¯" << std::endl;
+                            std::cout << "é”™è¯¯ï¼šæ¸¸æˆçŠ¶æ€æœªåˆå§‹åŒ–" << std::endl;
                         }
                     }
                     else if (command == "history") {
                         Log(LogGrade::INFO, "DEBUG COMMAND: Print choice history");
                         if (g_currentGameInfo.gameState != nullptr) {
                             auto& history = g_currentGameInfo.gameState->getChoiceHistory();
-                            std::cout << "Ñ¡ÔñÀúÊ· (" << history.size() << " Ïî):" << std::endl;
+                            std::cout << "é€‰æ‹©å†å² (" << history.size() << " é¡¹):" << std::endl;
                             std::cout << "------------------------" << std::endl;
 
                             for (size_t i = 0; i < history.size(); i++) {
@@ -558,7 +558,7 @@ int operate() {
                             }
                         }
                         else {
-                            std::cout << "´íÎó£ºÓÎÏ·×´Ì¬Î´³õÊ¼»¯" << std::endl;
+                            std::cout << "é”™è¯¯ï¼šæ¸¸æˆçŠ¶æ€æœªåˆå§‹åŒ–" << std::endl;
                         }
                     }
                     else if (command == "endings") {
@@ -568,37 +568,37 @@ int operate() {
                             int collected = gameState.getCollectedEndingsCount();
                             int total = gameState.getTotalEndingsCount();
 
-                            std::cout << "½á¾ÖÊÕ¼¯Çé¿ö: " << collected << "/" << total << std::endl;
+                            std::cout << "ç»“å±€æ”¶é›†æƒ…å†µ: " << collected << "/" << total << std::endl;
                             std::cout << "----------------" << std::endl;
 
                             if (collected > 0) {
                                 auto& endings = gameState.getCollectedEndings();
-                                std::cout << "ÒÑÊÕ¼¯µÄ½á¾Ö:" << std::endl;
+                                std::cout << "å·²æ”¶é›†çš„ç»“å±€:" << std::endl;
                                 for (size_t i = 0; i < endings.size(); i++) {
                                     std::cout << "  " << i + 1 << ". " << endings[i] << std::endl;
                                 }
                             }
 
                             if (total > 0) {
-                                std::cout << "ÊÕ¼¯½ø¶È: " << (collected * 100 / total) << "%" << std::endl;
+                                std::cout << "æ”¶é›†è¿›åº¦: " << (collected * 100 / total) << "%" << std::endl;
                             }
                         }
                         else {
-                            std::cout << "´íÎó£ºÓÎÏ·×´Ì¬Î´³õÊ¼»¯" << std::endl;
+                            std::cout << "é”™è¯¯ï¼šæ¸¸æˆçŠ¶æ€æœªåˆå§‹åŒ–" << std::endl;
                         }
                     }
                     else if (command == "info") {
                         Log(LogGrade::INFO, "DEBUG COMMAND: Print game info");
-                        std::cout << "µ±Ç°ÓÎÏ·ĞÅÏ¢:" << std::endl;
+                        std::cout << "å½“å‰æ¸¸æˆä¿¡æ¯:" << std::endl;
                         std::cout << "----------------" << std::endl;
-                        std::cout << "½Å±¾Â·¾¶: " << g_currentGameInfo.scriptPath << std::endl;
-                        std::cout << "µ±Ç°ĞĞºÅ: " << g_currentGameInfo.currentLine << std::endl;
-                        std::cout << "ÓÎÏ·×´Ì¬: " << (g_currentGameInfo.gameState != nullptr ? "ÒÑ³õÊ¼»¯" : "Î´³õÊ¼»¯") << std::endl;
+                        std::cout << "è„šæœ¬è·¯å¾„: " << g_currentGameInfo.scriptPath << std::endl;
+                        std::cout << "å½“å‰è¡Œå·: " << g_currentGameInfo.currentLine << std::endl;
+                        std::cout << "æ¸¸æˆçŠ¶æ€: " << (g_currentGameInfo.gameState != nullptr ? "å·²åˆå§‹åŒ–" : "æœªåˆå§‹åŒ–") << std::endl;
 
                         if (g_currentGameInfo.gameState != nullptr) {
                             auto& gameState = *g_currentGameInfo.gameState;
-                            std::cout << "ÒÑÊÕ¼¯½á¾Ö: " << gameState.getCollectedEndingsCount() << std::endl;
-                            std::cout << "Ñ¡ÔñÀúÊ·ÊıÁ¿: " << gameState.getChoiceHistory().size() << std::endl;
+                            std::cout << "å·²æ”¶é›†ç»“å±€: " << gameState.getCollectedEndingsCount() << std::endl;
+                            std::cout << "é€‰æ‹©å†å²æ•°é‡: " << gameState.getChoiceHistory().size() << std::endl;
                         }
                     }
                     else if (command.substr(0, 5) == "goto ") {
@@ -608,27 +608,27 @@ int operate() {
 
                         if (ss >> lineNum) {
                             if (lineNum > 0) {
-                                // ÕâÊÇÒ»¸öÌØÊâµÄ·µ»ØÖµ£¬¸æËßµ÷ÓÃÕßÒªÌø×ªµ½Ö¸¶¨ĞĞ
-                                g_currentGameInfo.currentLine = lineNum - 1; // ×ª»»Îª0-basedË÷Òı
-                                std::cout << "½«Ìø×ªµ½µÚ " << lineNum << " ĞĞ" << std::endl;
-                                std::cout << "ÍË³öµ÷ÊÔÖÕ¶Ë²¢¼ÌĞøÓÎÏ·..." << std::endl;
+                                // è¿™æ˜¯ä¸€ä¸ªç‰¹æ®Šçš„è¿”å›å€¼ï¼Œå‘Šè¯‰è°ƒç”¨è€…è¦è·³è½¬åˆ°æŒ‡å®šè¡Œ
+                                g_currentGameInfo.currentLine = lineNum - 1; // è½¬æ¢ä¸º0-basedç´¢å¼•
+                                std::cout << "å°†è·³è½¬åˆ°ç¬¬ " << lineNum << " è¡Œ" << std::endl;
+                                std::cout << "é€€å‡ºè°ƒè¯•ç»ˆç«¯å¹¶ç»§ç»­æ¸¸æˆ..." << std::endl;
                                 cout << std::endl;
                                 std::cout << "\033[37m";
-                                return 3; // ÌØÊâ·µ»ØÖµ±íÊ¾Ìø×ª
+                                return 3; // ç‰¹æ®Šè¿”å›å€¼è¡¨ç¤ºè·³è½¬
                             }
                             else {
-                                std::cout << "´íÎó£ºĞĞºÅ±ØĞëÎªÕıÊı" << std::endl;
+                                std::cout << "é”™è¯¯ï¼šè¡Œå·å¿…é¡»ä¸ºæ­£æ•°" << std::endl;
                             }
                         }
                         else {
-                            std::cout << "ÓÃ·¨: goto <ĞĞºÅ>" << std::endl;
+                            std::cout << "ç”¨æ³•: goto <è¡Œå·>" << std::endl;
                         }
                     }
                     else if (command.empty()) {
-                        // ¿ÕÃüÁî£¬²»×öÈÎºÎ²Ù×÷
+                        // ç©ºå‘½ä»¤ï¼Œä¸åšä»»ä½•æ“ä½œ
                     }
                     else {
-                        // ¼ì²éÊÇ·ñÓĞÏàËÆÃüÁî
+                        // æ£€æŸ¥æ˜¯å¦æœ‰ç›¸ä¼¼å‘½ä»¤
                         for (const auto& target : validCommands) {
                             if (isSimilar(command, target)) {
                                 std::cout << "Do you mean: " << target << " ? " << std::endl;
@@ -636,15 +636,15 @@ int operate() {
                             }
                         }
                         Log(LogGrade::ERR, "Unknown command: " + command);
-                        std::cout << "Î´ÖªÃüÁî: " << command << std::endl;
+                        std::cout << "æœªçŸ¥å‘½ä»¤: " << command << std::endl;
                         std::cout << "\033[90m";
-                        std::cout << "ÊäÈë 'help' ²é¿´¿ÉÓÃÃüÁî" << std::endl;
+                        std::cout << "è¾“å…¥ 'help' æŸ¥çœ‹å¯ç”¨å‘½ä»¤" << std::endl;
                     }
                 }
             }
             else {
                 Log(LogGrade::WARNING, "The Debug is not enabled");
-                std::cout << "\033[90m" << "µ÷ÊÔÄ£Ê½Î´ÆôÓÃ" << "\033[37m" << std::endl;
+                std::cout << "\033[90m" << "è°ƒè¯•æ¨¡å¼æœªå¯ç”¨" << "\033[37m" << std::endl;
                 
             }
             
@@ -656,41 +656,41 @@ int operate() {
 }
 
 /**
- * @brief ¼ì²é²¢ÇåÀíÈÕÖ¾ÎÄ¼ş
- * @param logFilePath ÈÕÖ¾ÎÄ¼şÂ·¾¶
- * @return ÊÇ·ñ³É¹¦ÇåÀí
+ * @brief æ£€æŸ¥å¹¶æ¸…ç†æ—¥å¿—æ–‡ä»¶
+ * @param logFilePath æ—¥å¿—æ–‡ä»¶è·¯å¾„
+ * @return æ˜¯å¦æˆåŠŸæ¸…ç†
  */
 bool checkAndCleanLogFile(const std::string& logFilePath) {
     namespace fs = std::filesystem;
 
-    // ¼ì²éÎÄ¼şÊÇ·ñ´æÔÚ
+    // æ£€æŸ¥æ–‡ä»¶æ˜¯å¦å­˜åœ¨
     if (!fs::exists(logFilePath)) {
         return true;
     }
 
     try {
-        // »ñÈ¡ÎÄ¼ş´óĞ¡
+        // è·å–æ–‡ä»¶å¤§å°
         auto fileSize = fs::file_size(logFilePath);
         const size_t MAX_LOG_SIZE = 20 * 1024 * 1024; // 20MB
 
-        // Èç¹ûÎÄ¼ş³¬¹ı20MB£¬Çå¿ÕÎÄ¼ş
+        // å¦‚æœæ–‡ä»¶è¶…è¿‡20MBï¼Œæ¸…ç©ºæ–‡ä»¶
         if (fileSize > MAX_LOG_SIZE) {
             std::ofstream outFile(logFilePath, std::ios::trunc);
             if (!outFile.is_open()) {
                 return false;
             }
 
-            // Ğ´ÈëÇå¿ÕËµÃ÷
-            outFile << "[" << logtimer() << "] INFO ÈÕÖ¾ÎÄ¼şÒÑ³¬¹ı20MB£¬×Ô¶¯Çå¿Õ" << std::endl;
+            // å†™å…¥æ¸…ç©ºè¯´æ˜
+            outFile << "[" << logtimer() << "] INFO æ—¥å¿—æ–‡ä»¶å·²è¶…è¿‡20MBï¼Œè‡ªåŠ¨æ¸…ç©º" << std::endl;
             outFile.close();
 
-            // Êä³ö¿ØÖÆÌ¨ÌáÊ¾
-            std::cout << "ÈÕÖ¾ÎÄ¼şÒÑ³¬¹ı20MB£¬ÒÑ×Ô¶¯Çå¿Õ" << std::endl;
+            // è¾“å‡ºæ§åˆ¶å°æç¤º
+            std::cout << "æ—¥å¿—æ–‡ä»¶å·²è¶…è¿‡20MBï¼Œå·²è‡ªåŠ¨æ¸…ç©º" << std::endl;
         }
         return true;
     }
     catch (const std::exception& e) {
-        std::cerr << "¼ì²éÈÕÖ¾ÎÄ¼şÊ±³ö´í: " << e.what() << std::endl;
+        std::cerr << "æ£€æŸ¥æ—¥å¿—æ–‡ä»¶æ—¶å‡ºé”™: " << e.what() << std::endl;
         return false;
     }
 }
@@ -698,7 +698,7 @@ bool checkAndCleanLogFile(const std::string& logFilePath) {
 
 
 /**
- * @brief Ğ´ÈëÈÕÖ¾µ½ÎÄ¼ş
+ * @brief å†™å…¥æ—¥å¿—åˆ°æ–‡ä»¶
  */
 void Log(LogGrade logGrade, const std::string& out) {
 
@@ -706,18 +706,18 @@ void Log(LogGrade logGrade, const std::string& out) {
     {
         if (!DebugLogEnabled)
         {
-            return;// Èç¹ûµ÷ÊÔÈÕÖ¾Î´ÆôÓÃ£¬Ôò·µ»Ø
+            return;// å¦‚æœè°ƒè¯•æ—¥å¿—æœªå¯ç”¨ï¼Œåˆ™è¿”å›
         }
     }
-    // ÈÕÖ¾ÎÄ¼şÂ·¾¶
+    // æ—¥å¿—æ–‡ä»¶è·¯å¾„
     const std::string LOG_FILE_PATH = "pvn_engine.log";
 
-    // ¼ì²é²¢ÇåÀíÈÕÖ¾ÎÄ¼ş
+    // æ£€æŸ¥å¹¶æ¸…ç†æ—¥å¿—æ–‡ä»¶
     if (!checkAndCleanLogFile(LOG_FILE_PATH)) {
-        std::cerr << "ÎŞ·¨ÇåÀíÈÕÖ¾ÎÄ¼ş£¬ÈÕÖ¾Ğ´Èë¿ÉÄÜÊ§°Ü" << std::endl;
+        std::cerr << "æ— æ³•æ¸…ç†æ—¥å¿—æ–‡ä»¶ï¼Œæ—¥å¿—å†™å…¥å¯èƒ½å¤±è´¥" << std::endl;
     }
 
-    // ¸ñÊ½»¯ÈÕÖ¾×Ö·û´®
+    // æ ¼å¼åŒ–æ—¥å¿—å­—ç¬¦ä¸²
     std::stringstream logStream;
 	logStream << logtimer() << " "
         << logGradeToString(logGrade) << " "
@@ -727,10 +727,10 @@ void Log(LogGrade logGrade, const std::string& out) {
 
     
 
-    // Ğ´Èëµ½ÈÕÖ¾ÎÄ¼ş
+    // å†™å…¥åˆ°æ—¥å¿—æ–‡ä»¶
     std::ofstream logFile(LOG_FILE_PATH, std::ios::app);
     if (!logFile.is_open()) {
-        std::cerr << "ÎŞ·¨´ò¿ªÈÕÖ¾ÎÄ¼ş: " << LOG_FILE_PATH << std::endl;
+        std::cerr << "æ— æ³•æ‰“å¼€æ—¥å¿—æ–‡ä»¶: " << LOG_FILE_PATH << std::endl;
         return;
     }
 

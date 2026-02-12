@@ -1,4 +1,4 @@
-// parser.cpp
+ï»¿// parser.cpp
 #include "parser.h"
 #include "ui.h"
 #include "fileutils.h"
@@ -6,7 +6,7 @@
 #include <sstream>
 #include <map>
 
-// ==================== ±êÇ©½âÎö ====================
+// ==================== æ ‡ç­¾è§£æ ====================
 
 std::map<std::string, int> parseLabels(const std::vector<std::string>& lines) {
     std::map<std::string, int> labels;
@@ -17,10 +17,10 @@ std::map<std::string, int> parseLabels(const std::vector<std::string>& lines) {
         std::string token;
 
         if (ss >> token) {
-            // ¼ì²éÊÇ·ñÊÇ±êÇ©£¨ÒÔÃ°ºÅ½áÎ²µÄµ¥´Ê£©
+            // æ£€æŸ¥æ˜¯å¦æ˜¯æ ‡ç­¾ï¼ˆä»¥å†’å·ç»“å°¾çš„å•è¯ï¼‰
             if (token.back() == ':') {
                 std::string labelName = token.substr(0, token.length() - 1);
-                labels[labelName] = i + 1; // ĞĞºÅ£¨´Ó1¿ªÊ¼£©
+                labels[labelName] = i + 1; // è¡Œå·ï¼ˆä»1å¼€å§‹ï¼‰
             }
         }
     }
@@ -28,28 +28,28 @@ std::map<std::string, int> parseLabels(const std::vector<std::string>& lines) {
     return labels;
 }
 
-// ==================== Ìø×ªÄ¿±ê½âÎö ====================
+// ==================== è·³è½¬ç›®æ ‡è§£æ ====================
 
 int parseJumpTarget(const std::string& target, const std::map<std::string, int>& labels,
                     bool& isLabel) {
-    // ÏÈ¼ì²éÊÇ·ñÊÇÊı×Ö£¨ĞĞºÅ£©
+    // å…ˆæ£€æŸ¥æ˜¯å¦æ˜¯æ•°å­—ï¼ˆè¡Œå·ï¼‰
     try {
         int lineNum = std::stoi(target);
         isLabel = false;
         return lineNum;
     }
     catch (const std::exception&) {
-        // ²»ÊÇÊı×Ö£¬¼ì²éÊÇ·ñÊÇ±êÇ©
+        // ä¸æ˜¯æ•°å­—ï¼Œæ£€æŸ¥æ˜¯å¦æ˜¯æ ‡ç­¾
         std::string labelName = target;
 
-        // Ö±½Ó²éÕÒ±êÇ©
+        // ç›´æ¥æŸ¥æ‰¾æ ‡ç­¾
         auto it = labels.find(labelName);
         if (it != labels.end()) {
             isLabel = true;
             return it->second;
         }
 
-        // Ò²³¢ÊÔ²éÕÒÈ¥µôÃ°ºÅµÄ±êÇ©
+        // ä¹Ÿå°è¯•æŸ¥æ‰¾å»æ‰å†’å·çš„æ ‡ç­¾
         if (!labelName.empty() && labelName.back() == ':') {
             labelName.pop_back();
             it = labels.find(labelName);
@@ -59,19 +59,19 @@ int parseJumpTarget(const std::string& target, const std::map<std::string, int>&
             }
         }
 
-        return -1; // ÎŞĞ§µÄÄ¿±ê
+        return -1; // æ— æ•ˆçš„ç›®æ ‡
     }
 }
 
 
 
-// ==================== Ö´ĞĞĞĞ ====================
+// ==================== æ‰§è¡Œè¡Œ ====================
 
 std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState,
     size_t currentLine, const std::vector<std::string>& allLines,
     const std::string& where, int indentLevel,
     const std::map<std::string, int>& labels) {
-    extern CurrentGameInfo g_currentGameInfo; // Íâ²¿È«¾Ö±äÁ¿
+    extern CurrentGameInfo g_currentGameInfo; // å¤–éƒ¨å…¨å±€å˜é‡
 
     Log(LogGrade::INFO, "Executing line: " + to_string(currentLine + 1));
     Log(LogGrade::DEBUG, "Now executing: " + line);
@@ -86,40 +86,40 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         return { 0, currentLine + 1 };
     }
 
-    // ´¦Àí±êÇ©
+    // å¤„ç†æ ‡ç­¾
     if (cmd.back() == ':') {
         Log(LogGrade::DEBUG, "Label found, skipping.");
         return { 0, currentLine + 1 };
     }
 
-    // ==================== ÓÎÏ·½áÊøÃüÁî ====================
+    // ==================== æ¸¸æˆç»“æŸå‘½ä»¤ ====================
     if (cmd == "end" || cmd == "END") {
         Log(LogGrade::DEBUG, "Game end command found.");
-        std::cout << "ÓÎÏ·½áÊø" << std::endl;
+        std::cout << "æ¸¸æˆç»“æŸ" << std::endl;
         system("pause");
         Log(LogGrade::DEBUG, "Exiting game.");
         return { -1, 0 };
     }
 
-    // ==================== ½á¾ÖÃûÃüÁî ====================
+    // ==================== ç»“å±€åå‘½ä»¤ ====================
     if (cmd == "endname" || cmd == "ENDNAME") {
 
         Log(LogGrade::DEBUG, "End name command found.");
         std::string endingName;
         getline(ss, endingName);
 
-        // È¥³ı¿ªÍ·¿Õ¸ñ
+        // å»é™¤å¼€å¤´ç©ºæ ¼
         size_t start = endingName.find_first_not_of(" ");
         if (start != std::string::npos) {
             endingName = endingName.substr(start);
         }
 
         if (!endingName.empty()) {
-            // ÌáÈ¡ÓÎÏ·ÎÄ¼ş¼ĞÃû
+            // æå–æ¸¸æˆæ–‡ä»¶å¤¹å
             std::string gameFolder = "";
             size_t novelPos = where.find("Novel\\");
             if (novelPos != std::string::npos) {
-                size_t startPos = novelPos + 6; // "Novel\\" µÄ³¤
+                size_t startPos = novelPos + 6; // "Novel\\" çš„é•¿
                 size_t endPos = where.find("\\", startPos);
                 if (endPos != std::string::npos) {
                     gameFolder = where.substr(startPos, endPos - startPos);
@@ -127,32 +127,32 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
 
             if (!gameFolder.empty()) {
-                // ±£´æ½á¾Ö
+                // ä¿å­˜ç»“å±€
                 saveEnding(gameFolder, endingName, gameState);
                 Log(LogGrade::INFO, "Ending saved: " + endingName);
-                // ÏÔÊ¾ÊÕ¼¯½ø¶È
+                // æ˜¾ç¤ºæ”¶é›†è¿›åº¦
                 int collected = gameState.getCollectedEndingsCount();
                 int total = gameState.getTotalEndingsCount();
 
                 std::cout << std::endl;
                 std::cout << "==============================" << std::endl;
-                std::cout << "½á¾Ö´ï³É£º" << endingName << std::endl;
-                std::cout << "ÒÑÊÕ¼¯½á¾Ö£º" << collected << "/" << total << std::endl;
+                std::cout << "ç»“å±€è¾¾æˆï¼š" << endingName << std::endl;
+                std::cout << "å·²æ”¶é›†ç»“å±€ï¼š" << collected << "/" << total << std::endl;
                 std::cout << "==============================" << std::endl;
                 std::cout << std::endl;
 
 
-                std::cout << "°´ÈÎÒâ¼ü¼ÌĞø..." << std::endl;
+                std::cout << "æŒ‰ä»»æ„é”®ç»§ç»­..." << std::endl;
                 getKeyName();
             }
         }
 
-        // endname ²»½áÊøÓÎÏ·£¬¼ÌĞøÖ´ĞĞÏÂÒ»ĞĞ
+        // endname ä¸ç»“æŸæ¸¸æˆï¼Œç»§ç»­æ‰§è¡Œä¸‹ä¸€è¡Œ
         Log(LogGrade::DEBUG, "End name command executed.");
         return { 0, currentLine + 1 };
     }
 
-    // ==================== µÈ´ıÃüÁî ====================
+    // ==================== ç­‰å¾…å‘½ä»¤ ====================
     if (cmd == "wait" || cmd == "WAIT") {
         Log(LogGrade::DEBUG, "Wait command found.");
         int wait;
@@ -163,17 +163,17 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         return { 0, currentLine + 1 };
     }
 
-    // ==================== Ëµ»°ÃüÁî£¨say£© ====================
-    //sayÊÇÊ«É½£¬ÓÅ»¯µÈÓÚ0 ÕâÊÇË­Ğ´µÄ£¨ÄÕ£©
+    // ==================== è¯´è¯å‘½ä»¤ï¼ˆsayï¼‰ ====================
+    //sayæ˜¯è¯—å±±ï¼Œä¼˜åŒ–ç­‰äº0 è¿™æ˜¯è°å†™çš„ï¼ˆæ¼ï¼‰
     if (cmd == "say" || cmd == "SAY") {
         Log(LogGrade::DEBUG, "Say command found.");
         std::string rest;
         getline(ss, rest);
 
-        // È¥³ı¿ªÍ·µÄ¿Õ°××Ö·û
+        // å»é™¤å¼€å¤´çš„ç©ºç™½å­—ç¬¦
         size_t start = rest.find_first_not_of(" ");
         if (start == std::string::npos) {
-            // Õû¸öÃüÁîÎª¿Õ
+            // æ•´ä¸ªå‘½ä»¤ä¸ºç©º
             return { 0, currentLine + 1 };
         }
         rest = rest.substr(start);
@@ -182,17 +182,17 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         double time_val = 0.5;
         std::string incolor = "white";
 
-        // ¼ì²éµÚÒ»¸ö×Ö·ûÊÇ·ñÊÇÒıºÅ
+        // æ£€æŸ¥ç¬¬ä¸€ä¸ªå­—ç¬¦æ˜¯å¦æ˜¯å¼•å·
         if (rest[0] == '"') {
             Log(LogGrade::DEBUG, "Quoted string found.");
-            // ´øÒıºÅÓï·¨
+            // å¸¦å¼•å·è¯­æ³•
             size_t quote_end = 0;
             bool escaped = false;
 
-            // ÊÖ¶¯½âÎöÒıºÅ×Ö·û´®£¬´¦Àí×ªÒå
+            // æ‰‹åŠ¨è§£æå¼•å·å­—ç¬¦ä¸²ï¼Œå¤„ç†è½¬ä¹‰
             for (size_t i = 1; i < rest.length(); i++) {
                 if (escaped) {
-                    // ´¦Àí×ªÒå×Ö·û
+                    // å¤„ç†è½¬ä¹‰å­—ç¬¦
                     switch (rest[i]) {
                     case '"': text += '"'; break;
                     case 'n': text += '\n'; break;
@@ -204,11 +204,11 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                     escaped = false;
                 }
                 else if (rest[i] == '\\') {
-                    // Óöµ½×ªÒå×Ö·û
+                    // é‡åˆ°è½¬ä¹‰å­—ç¬¦
                     escaped = true;
                 }
                 else if (rest[i] == '"') {
-                    // ÕÒµ½½áÊøÒıºÅ
+                    // æ‰¾åˆ°ç»“æŸå¼•å·
                     quote_end = i;
                     break;
                 }
@@ -218,17 +218,17 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
 
             if (quote_end == 0) {
-                // Ã»ÓĞÕÒµ½½áÊøÒıºÅ
-                Log(LogGrade::ERR, "Error: Missing closing quote in say command.At line " + std::to_string(currentLine));
-                MessageBoxA(NULL, "´íÎó£ºsayÃüÁîÖĞµÄ×Ö·û´®È±ÉÙ½áÊøÒıºÅ",
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                // æ²¡æœ‰æ‰¾åˆ°ç»“æŸå¼•å·
+                Log(LogGrade::ERR, "Error: Missing closing quote in say command. At line " + std::to_string(currentLine+1));
+                MessageBoxA(NULL, "é”™è¯¯ï¼šsayå‘½ä»¤ä¸­çš„å­—ç¬¦ä¸²ç¼ºå°‘ç»“æŸå¼•å·",
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
                 return { 0, currentLine + 1 };
             }
 
-            // ÌáÈ¡ÒıºÅºóµÄ²ÎÊı²¿·Ö
+            // æå–å¼•å·åçš„å‚æ•°éƒ¨åˆ†
             std::string remaining = rest.substr(quote_end + 1);
 
-            // ½âÎöÊ±¼äºÍÑÕÉ«
+            // è§£ææ—¶é—´å’Œé¢œè‰²
             std::stringstream remainingSS(remaining);
             std::vector<std::string> tokens;
             std::string token;
@@ -237,11 +237,11 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                 tokens.push_back(token);
             }
 
-            // ´ÓºóÏòÇ°½âÎö²ÎÊı
+            // ä»åå‘å‰è§£æå‚æ•°
             if (!tokens.empty()) {
                 std::string last_token = tokens.back();
 
-                // ¼ì²éÊÇ·ñÊÇÑÕÉ«
+                // æ£€æŸ¥æ˜¯å¦æ˜¯é¢œè‰²
                 if (last_token == "black" || last_token == "blue" || last_token == "green" ||
                     last_token == "aqua" || last_token == "red" || last_token == "purple" ||
                     last_token == "yellow" || last_token == "white") {
@@ -249,7 +249,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                     tokens.pop_back();
                 }
 
-                // ¼ì²éÊÇ·ñÊÇÊ±¼ä
+                // æ£€æŸ¥æ˜¯å¦æ˜¯æ—¶é—´
                 if (!tokens.empty()) {
                     last_token = tokens.back();
                     try {
@@ -264,7 +264,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         }
         else {
             Log(LogGrade::DEBUG, "Unquoted string found.");
-            // Ô­ÓĞµÄÎŞÒıºÅÓï·¨£¨Ïòºó¼æÈİ£©
+            // åŸæœ‰çš„æ— å¼•å·è¯­æ³•ï¼ˆå‘åå…¼å®¹ï¼‰
             std::stringstream rest_ss(rest);
             std::vector<std::string> tokens;
             std::string token;
@@ -274,14 +274,14 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
 
             if (!tokens.empty()) {
-                // ÁÙÊ±´æ´¢ÎÄ±¾²¿·Ö
+                // ä¸´æ—¶å­˜å‚¨æ–‡æœ¬éƒ¨åˆ†
                 std::vector<std::string> text_parts;
 
-                // ´ÓºóÏòÇ°½âÎö
+                // ä»åå‘å‰è§£æ
                 while (!tokens.empty()) {
                     std::string token = tokens.back();
 
-                    // ¼ì²éÊÇ·ñÊÇÑÕÉ«
+                    // æ£€æŸ¥æ˜¯å¦æ˜¯é¢œè‰²
                     if (token == "black" || token == "blue" || token == "green" ||
                         token == "aqua" || token == "red" || token == "purple" ||
                         token == "yellow" || token == "white") {
@@ -292,14 +292,14 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                         }
                     }
 
-                    // ¼ì²éÊÇ·ñÊÇÊ±¼ä
+                    // æ£€æŸ¥æ˜¯å¦æ˜¯æ—¶é—´
                     try {
-                        // ³¢ÊÔ×ª»»Îªdouble
+                        // å°è¯•è½¬æ¢ä¸ºdouble
                         char* end;
                         double time_test = strtod(token.c_str(), &end);
                         if (end != token.c_str() && *end == '\0') {
-                            // ³É¹¦×ª»»ÇÒÊÇÍêÕûµÄÊı×Ö
-                            if (time_val == 0.5) { // Ä¬ÈÏÖµ£¬ËµÃ÷»¹Ã»ÉèÖÃ¹ı
+                            // æˆåŠŸè½¬æ¢ä¸”æ˜¯å®Œæ•´çš„æ•°å­—
+                            if (time_val == 0.5) { // é»˜è®¤å€¼ï¼Œè¯´æ˜è¿˜æ²¡è®¾ç½®è¿‡
                                 time_val = time_test;
                                 tokens.pop_back();
                                 continue;
@@ -307,15 +307,15 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                         }
                     }
                     catch (...) {
-                        // ×ª»»Ê§°Ü£¬²»ÊÇÊ±¼ä
+                        // è½¬æ¢å¤±è´¥ï¼Œä¸æ˜¯æ—¶é—´
                     }
 
-                    // ¼È²»ÊÇÑÕÉ«Ò²²»ÊÇÊ±¼ä£¬¾ÍÊÇÎÄ±¾µÄÒ»²¿·Ö
+                    // æ—¢ä¸æ˜¯é¢œè‰²ä¹Ÿä¸æ˜¯æ—¶é—´ï¼Œå°±æ˜¯æ–‡æœ¬çš„ä¸€éƒ¨åˆ†
                     text_parts.insert(text_parts.begin(), token);
                     tokens.pop_back();
                 }
 
-                // ¹¹½¨ÎÄ±¾
+                // æ„å»ºæ–‡æœ¬
                 for (size_t i = 0; i < text_parts.size(); i++) {
                     if (i > 0) text += " ";
                     text += text_parts[i];
@@ -323,7 +323,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
         }
 
-        // ´¦Àí±äÁ¿Õ¼Î»·û£¨${var}£©
+        // å¤„ç†å˜é‡å ä½ç¬¦ï¼ˆ${var}ï¼‰
         std::string final_text = "";
         size_t pos = 0;
 
@@ -344,14 +344,14 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
             std::string var_name = text.substr(var_start + 2, var_end - var_start - 2);
 
-            // Ê×ÏÈ¼ì²éÊÇ·ñÊÇ×Ö·û´®±äÁ¿
+            // é¦–å…ˆæ£€æŸ¥æ˜¯å¦æ˜¯å­—ç¬¦ä¸²å˜é‡
             std::string string_value = gameState.getStringVar(var_name);
             if (!string_value.empty()) {
-                // Èç¹ûÊÇ×Ö·û´®±äÁ¿£¬Ö±½ÓÊ¹ÓÃ×Ö·û´®Öµ
+                // å¦‚æœæ˜¯å­—ç¬¦ä¸²å˜é‡ï¼Œç›´æ¥ä½¿ç”¨å­—ç¬¦ä¸²å€¼
                 final_text += string_value;
             }
             else {
-                // ·ñÔò³¢ÊÔ×÷ÎªÕûÊı±äÁ¿´¦Àí
+                // å¦åˆ™å°è¯•ä½œä¸ºæ•´æ•°å˜é‡å¤„ç†
                 int var_value = gameState.getVar(var_name);
                 final_text += std::to_string(var_value);
             }
@@ -370,15 +370,15 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         Log(LogGrade::DEBUG, "Text: " + final_text);
         vnout(final_text, time_val, text_color, false, true);
         int result = operate();
-        if (result == 1) { // ±£´æ²¢ÍË³ö
+        if (result == 1) { // ä¿å­˜å¹¶é€€å‡º
             Log(LogGrade::INFO, "Save and exit.");
             return { -1, 0 };
         }
-        else if (result == 2) { // ²»±£´æÍË³ö
+        else if (result == 2) { // ä¸ä¿å­˜é€€å‡º
             Log(LogGrade::INFO, "Exit without saving.");
             return { -2, 0 };
         }
-        else if (result == 3) { // µ÷ÊÔÖÕ¶ËÇëÇóÌø×ª
+        else if (result == 3) { // è°ƒè¯•ç»ˆç«¯è¯·æ±‚è·³è½¬
             Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine + 1));
             return { 1, g_currentGameInfo.currentLine };
         }
@@ -386,22 +386,22 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         return { 0, currentLine + 1 };
     }
 
-    // ==================== ÊäÈëÃüÁî ====================
+    // ==================== è¾“å…¥å‘½ä»¤ ====================
     if (cmd == "input" || cmd == "INPUT") {
         Log(LogGrade::DEBUG, "INPUT command detected.");
 
         std::string prompt, varName;
 
-        // ½âÎöÃüÁî¸ñÊ½£ºinput "ÌáÊ¾ÎÄ±¾" varname
+        // è§£æå‘½ä»¤æ ¼å¼ï¼šinput "æç¤ºæ–‡æœ¬" varname
         if (line.find('"') != std::string::npos) {
-            // ´øÒıºÅµÄ¸ñÊ½
+            // å¸¦å¼•å·çš„æ ¼å¼
             size_t firstQuote = line.find('"');
             size_t secondQuote = line.find('"', firstQuote + 1);
 
             if (secondQuote == std::string::npos) {
                 Log(LogGrade::ERR, "Invalid input command: missing closing quote");
-                MessageBoxA(NULL, "´íÎó£ºinputÃüÁî¸ñÊ½²»ÕıÈ·£¬È±ÉÙ½áÊøÒıºÅ",
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, "é”™è¯¯ï¼šinputå‘½ä»¤æ ¼å¼ä¸æ­£ç¡®ï¼Œç¼ºå°‘ç»“æŸå¼•å·",
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
                 return { 0, currentLine + 1 };
             }
 
@@ -411,41 +411,41 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             std::stringstream restSS(rest);
             if (!(restSS >> varName)) {
                 Log(LogGrade::ERR, "Invalid input command: missing variable name");
-                MessageBoxA(NULL, "´íÎó£ºinputÃüÁî¸ñÊ½²»ÕıÈ·£¬È±ÉÙ±äÁ¿Ãû",
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, "é”™è¯¯ï¼šinputå‘½ä»¤æ ¼å¼ä¸æ­£ç¡®ï¼Œç¼ºå°‘å˜é‡å",
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
                 return { 0, currentLine + 1 };
             }
         }
         else {
-            // ÎŞÒıºÅ¸ñÊ½£¨¼òµ¥¸ñÊ½£©
+            // æ— å¼•å·æ ¼å¼ï¼ˆç®€å•æ ¼å¼ï¼‰
             std::string rest;
             getline(ss, rest);
             std::stringstream restSS(rest);
 
             if (!(restSS >> prompt >> varName)) {
                 Log(LogGrade::ERR, "Invalid input command: missing parameters");
-                MessageBoxA(NULL, "´íÎó£ºinputÃüÁî¸ñÊ½²»ÕıÈ·£¬²ÎÊı²»×ã",
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, "é”™è¯¯ï¼šinputå‘½ä»¤æ ¼å¼ä¸æ­£ç¡®ï¼Œå‚æ•°ä¸è¶³",
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
                 return { 0, currentLine + 1 };
             }
         }
 
         if (varName.empty()) {
             Log(LogGrade::ERR, "Invalid input command: empty variable name");
-            MessageBoxA(NULL, "´íÎó£ºinputÃüÁî±äÁ¿Ãû²»ÄÜÎª¿Õ",
-                "´íÎó", MB_ICONERROR | MB_OK);
+            MessageBoxA(NULL, "é”™è¯¯ï¼šinputå‘½ä»¤å˜é‡åä¸èƒ½ä¸ºç©º",
+                "é”™è¯¯", MB_ICONERROR | MB_OK);
             return { 0, currentLine + 1 };
         }
 
-        // ÏÔÊ¾ÌáÊ¾ĞÅÏ¢
+        // æ˜¾ç¤ºæç¤ºä¿¡æ¯
         std::cout << std::endl;
         std::cout << "\033[32m" << prompt << "\033[37m" ;
 
-        // »ñÈ¡ÓÃ»§ÊäÈë
+        // è·å–ç”¨æˆ·è¾“å…¥
         std::string userInput;
         std::getline(std::cin, userInput);
 
-        // È¥³ıÊ×Î²¿Õ°××Ö·û
+        // å»é™¤é¦–å°¾ç©ºç™½å­—ç¬¦
         size_t start = userInput.find_first_not_of(" \t\n\r");
         if (start != std::string::npos) {
             size_t end = userInput.find_last_not_of(" \t\n\r");
@@ -453,7 +453,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         }
 
         if (!userInput.empty()) {
-            // ´æ´¢µ½×Ö·û´®±äÁ¿ÖĞ
+            // å­˜å‚¨åˆ°å­—ç¬¦ä¸²å˜é‡ä¸­
             gameState.setStringVar(varName, userInput);
             Log(LogGrade::INFO, "Input saved to string variable: " + varName + " = \"" + userInput + "\"");
 
@@ -462,7 +462,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         }
         else {
             Log(LogGrade::WARNING, "User input is empty for variable: " + varName);
-            // Èç¹ûÓÃ»§ÊäÈëÎª¿Õ£¬ÈÔÈ»ÉèÖÃ±äÁ¿Îª¿Õ×Ö·û´®
+            // å¦‚æœç”¨æˆ·è¾“å…¥ä¸ºç©ºï¼Œä»ç„¶è®¾ç½®å˜é‡ä¸ºç©ºå­—ç¬¦ä¸²
             gameState.setStringVar(varName, "");
             
             std::cout << std::endl;
@@ -470,8 +470,8 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
         return { 0, currentLine + 1 };
     }
-    // ==================== ÏÔÊ¾±äÁ¿ÖµÃüÁî ====================
-    //±ğÓÃ£¬ÕâÍæÒâ´¿´¿ÀúÊ·ÒÅÁô£¬Ò»¶Ñbug
+    // ==================== æ˜¾ç¤ºå˜é‡å€¼å‘½ä»¤ ====================
+    //åˆ«ç”¨ï¼Œè¿™ç©æ„çº¯çº¯å†å²é—ç•™ï¼Œä¸€å †bug
     if (cmd == "sayvar" || cmd == "SAYVAR") {
         Log(LogGrade::DEBUG, "SAYVAR command detected.");
         std::string varName;
@@ -494,17 +494,17 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
             vnout(text, time_val, text_color, false, true);
             int result = operate();
-            if (result == 1) { // ±£´æ²¢ÍË³ö
+            if (result == 1) { // ä¿å­˜å¹¶é€€å‡º
 
                 Log(LogGrade::INFO, "Save and exit.");
                 return { -1, 0 };
             }
-            else if (result == 2) { // ²»±£´æÍË³ö
+            else if (result == 2) { // ä¸ä¿å­˜é€€å‡º
                 Log(LogGrade::INFO, "Exit without saving.");
                 return { -2, 0 };
             }
-            else if (result == 3) { // µ÷ÊÔÖÕ¶ËÇëÇóÌø×ª
-                // Ê¹ÓÃÈ«¾Ö±äÁ¿ÖĞµÄÌø×ªĞĞºÅ
+            else if (result == 3) { // è°ƒè¯•ç»ˆç«¯è¯·æ±‚è·³è½¬
+                // ä½¿ç”¨å…¨å±€å˜é‡ä¸­çš„è·³è½¬è¡Œå·
                 Log(LogGrade::DEBUG, "Debug Terminal Jump to line " + std::to_string(g_currentGameInfo.currentLine + 1));
                 return { 1, g_currentGameInfo.currentLine };
             }
@@ -513,8 +513,8 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         }
     }
 
-    // ==================== ÏÔÊ¾ÎÄ¼şÃüÁî ====================
-    //³¬ºÃÓÃ£¨Ï²£©
+    // ==================== æ˜¾ç¤ºæ–‡ä»¶å‘½ä»¤ ====================
+    //è¶…å¥½ç”¨ï¼ˆå–œï¼‰
     if (cmd == "show" || cmd == "SHOW") {
         Log(LogGrade::DEBUG, "SHOW command detected.");
         std::string file_to_show;
@@ -528,24 +528,24 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         return { 0, currentLine + 1 };
     }
 
-    // ==================== Ñ¡ÔñÃüÁî ====================
-    // ºÃÓÃ£¨Ï²£©
+    // ==================== é€‰æ‹©å‘½ä»¤ ====================
+    // å¥½ç”¨ï¼ˆå–œï¼‰
     if (cmd == "choose" || cmd == "CHOOSE") {
         Log(LogGrade::DEBUG, "CHOOSE command detected.");
-        // ½âÎöÑ¡Ïî£º¸ñÊ½Îª ±êÇ©:ÏÔÊ¾ÎÄ±¾
+        // è§£æé€‰é¡¹ï¼šæ ¼å¼ä¸º æ ‡ç­¾:æ˜¾ç¤ºæ–‡æœ¬
         std::vector<ChoiceOption> options;
-        std::vector<std::string> gumOptions;  // ÓÃÓÚgumÏÔÊ¾µÄÑ¡Ïî
+        std::vector<std::string> gumOptions;  // ç”¨äºgumæ˜¾ç¤ºçš„é€‰é¡¹
         std::stringstream ss(line);
         std::string cmdWord;
         int optionCount;
 
         ss >> cmdWord >> optionCount;
 
-        // ½âÎöÃ¿¸öÑ¡Ïî
+        // è§£ææ¯ä¸ªé€‰é¡¹
         for (int i = 0; i < optionCount; i++) {
             std::string optionStr;
             if (ss >> optionStr) {
-                // ·Ö¸î±êÇ©ºÍÎÄ±¾£¨¸ñÊ½£º±êÇ©:ÎÄ±¾£©
+                // åˆ†å‰²æ ‡ç­¾å’Œæ–‡æœ¬ï¼ˆæ ¼å¼ï¼šæ ‡ç­¾:æ–‡æœ¬ï¼‰
                 size_t colonPos = optionStr.find(':');
                 if (colonPos != std::string::npos) {
                     ChoiceOption option;
@@ -553,17 +553,17 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                     option.text = optionStr.substr(colonPos + 1);
                     options.push_back(option);
 
-                    // ¹¹½¨gumÏÔÊ¾µÄÑ¡Ïî×Ö·û´® (¸ñÊ½: 1.ÎÄ±¾)
+                    // æ„å»ºgumæ˜¾ç¤ºçš„é€‰é¡¹å­—ç¬¦ä¸² (æ ¼å¼: 1.æ–‡æœ¬)
                     gumOptions.push_back(std::to_string(i + 1) + ". " + option.text);
                 }
                 else {
-                    // Èç¹ûÃ»ÓĞÃ°ºÅ Ê¹ÓÃ±êÇ©×÷ÎªÎÄ±¾
+                    // å¦‚æœæ²¡æœ‰å†’å· ä½¿ç”¨æ ‡ç­¾ä½œä¸ºæ–‡æœ¬
                     ChoiceOption option;
                     option.label = optionStr;
                     option.text = optionStr;
                     options.push_back(option);
 
-                    // ¹¹½¨gumÏÔÊ¾µÄÑ¡Ïî×Ö·û´®
+                    // æ„å»ºgumæ˜¾ç¤ºçš„é€‰é¡¹å­—ç¬¦ä¸²
                     gumOptions.push_back(std::to_string(i + 1) + ". " + optionStr);
                 }
             }
@@ -571,20 +571,20 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
         Log(LogGrade::DEBUG, "Options parsed: " + std::to_string(options.size()));
 
-        // ¼ì²égumÊÇ·ñ¿ÉÓÃ
+        // æ£€æŸ¥gumæ˜¯å¦å¯ç”¨
         if (!gum::GumWrapper::is_available()) {
             Log(LogGrade::WARNING, "Gum not available, falling back to original method");
-            // Ô­ÓĞµÄÏÔÊ¾Âß¼­
-            std::cout << "\033[90m" << "ÇëÑ¡Ôñ£º" << std::endl;
+            // åŸæœ‰çš„æ˜¾ç¤ºé€»è¾‘
+            std::cout << "\033[90m" << "è¯·é€‰æ‹©ï¼š" << std::endl;
             for (size_t i = 0; i < options.size(); i++) {
                 std::cout << i + 1 << ". ";
                 vnout(options[i].text, 0.5, white, false, true);
                 std::cout << "\033[90m";
                 std::cout << std::endl;
             }
-            std::cout << "ÇëÊäÈëÊı×ÖÑ¡Ôñ (1-" << options.size() << "): ";
+            std::cout << "è¯·è¾“å…¥æ•°å­—é€‰æ‹© (1-" << options.size() << "): ";
 
-            // Ô­ÓĞµÄÊäÈëÂß¼­
+            // åŸæœ‰çš„è¾“å…¥é€»è¾‘
             int choice = -1;
             while (choice < 1 || choice > static_cast<int>(options.size())) {
                 std::string input = getKeyName();
@@ -596,16 +596,16 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                     choice = input[0] - '0';
                 }
                 else if (input == "ESC") {
-                    // ²»×öÈÎºÎ´¦Àí£¬¼ÌĞøµÈ´ıÓĞĞ§ÊäÈë
+                    // ä¸åšä»»ä½•å¤„ç†ï¼Œç»§ç»­ç­‰å¾…æœ‰æ•ˆè¾“å…¥
                 }
             }
             Log(LogGrade::INFO, "User choice (fallback): " + std::to_string(choice));
 
-            // ¼ÇÂ¼Ñ¡Ôñ
+            // è®°å½•é€‰æ‹©
             gameState.recordChoice(options[choice - 1].text);
             std::cout << options[choice - 1].text << endl;
 
-            // Ìø×ªµ½¶ÔÓ¦µÄ±êÇ©
+            // è·³è½¬åˆ°å¯¹åº”çš„æ ‡ç­¾
             std::string targetLabel = options[choice - 1].label;
             bool isLabel;
             int jumpLine = parseJumpTarget(targetLabel, labels, isLabel);
@@ -616,35 +616,35 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
             else {
                 Log(LogGrade::ERR, "Invalid jump target: " + targetLabel);
-                MessageBoxA(NULL, ("´íÎó£ºÑ¡ÔñÄ¿±êÎŞĞ§ - " + targetLabel).c_str(),
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, ("é”™è¯¯ï¼šé€‰æ‹©ç›®æ ‡æ— æ•ˆ - " + targetLabel).c_str(),
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
                 return { -1, 0 };
             }
         }
 
-        // Ê¹ÓÃgum½øĞĞÑ¡Ôñ
+        // ä½¿ç”¨gumè¿›è¡Œé€‰æ‹©
         try {
             Log(LogGrade::DEBUG, "Using gum for selection");
             std::cout << endl;
-            // Ê¹ÓÃgumÏÔÊ¾Ñ¡Ôñ²Ëµ¥
+            // ä½¿ç”¨gumæ˜¾ç¤ºé€‰æ‹©èœå•
             std::string selected = gum::GumWrapper::choose(gumOptions);
-            // ÌáÈ¡µÚÒ»¸ö×Ö·û×÷ÎªÑ¡ÏîÊı×Ö
+            // æå–ç¬¬ä¸€ä¸ªå­—ç¬¦ä½œä¸ºé€‰é¡¹æ•°å­—
             std::string op = "";
             if (!selected.empty()) {
-                // ÌáÈ¡µÚÒ»¸ö×Ö·û£¨Èç"1"¡¢"2"µÈ£©
+                // æå–ç¬¬ä¸€ä¸ªå­—ç¬¦ï¼ˆå¦‚"1"ã€"2"ç­‰ï¼‰
                 op = selected.substr(0, 1);
 
-                // ×ª»»ÎªchoiceË÷Òı (1-based)
+                // è½¬æ¢ä¸ºchoiceç´¢å¼• (1-based)
                 int choice = std::stoi(op);
 
                 Log(LogGrade::INFO, "User choice (gum): " + op);
 
                 if (choice >= 1 && choice <= static_cast<int>(options.size())) {
-                    // ¼ÇÂ¼Ñ¡Ôñ
+                    // è®°å½•é€‰æ‹©
                     gameState.recordChoice(options[choice - 1].text);
-                    vnout("ÄãÑ¡ÔñÁË£º" + options[choice - 1].text, 0.5, gray, true, true);
+                    vnout("ä½ é€‰æ‹©äº†ï¼š" + options[choice - 1].text, 0.5, gray, true, true);
 
-                    // Ìø×ªµ½¶ÔÓ¦µÄ±êÇ©
+                    // è·³è½¬åˆ°å¯¹åº”çš„æ ‡ç­¾
                     std::string targetLabel = options[choice - 1].label;
                     bool isLabel;
                     int jumpLine = parseJumpTarget(targetLabel, labels, isLabel);
@@ -655,8 +655,8 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                     }
                     else {
                         Log(LogGrade::ERR, "Invalid jump target: " + targetLabel);
-                        MessageBoxA(NULL, ("´íÎó£ºÑ¡ÔñÄ¿±êÎŞĞ§ - " + targetLabel).c_str(),
-                            "´íÎó", MB_ICONERROR | MB_OK);
+                        MessageBoxA(NULL, ("é”™è¯¯ï¼šé€‰æ‹©ç›®æ ‡æ— æ•ˆ - " + targetLabel).c_str(),
+                            "é”™è¯¯", MB_ICONERROR | MB_OK);
                         return { -1, 0 };
                     }
                 }
@@ -667,23 +667,23 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
             else {
                 Log(LogGrade::WARNING, "Gum selection cancelled or empty");
-                // ÓÃ»§È¡ÏûÑ¡Ôñ£¬ÖØĞÂÏÔÊ¾µ±Ç°Ñ¡Ôñ
-                return { 0, currentLine + 1 };  // ÖØĞÂÖ´ĞĞµ±Ç°Ñ¡Ôñ
+                // ç”¨æˆ·å–æ¶ˆé€‰æ‹©ï¼Œé‡æ–°æ˜¾ç¤ºå½“å‰é€‰æ‹©
+                return { 0, currentLine + 1 };  // é‡æ–°æ‰§è¡Œå½“å‰é€‰æ‹©
             }
         }
         catch (const std::exception& e) {
             Log(LogGrade::ERR, "Gum selection error: " + std::string(e.what()));
 
-            // gumÊ§°Ü£¬»ØÍËµ½Ô­Ê¼·½·¨
+            // gumå¤±è´¥ï¼Œå›é€€åˆ°åŸå§‹æ–¹æ³•
             Log(LogGrade::DEBUG, "Falling back to original selection method");
-            std::cout << "\033[90m" << "ÇëÑ¡Ôñ£º" << std::endl;
+            std::cout << "\033[90m" << "è¯·é€‰æ‹©ï¼š" << std::endl;
             for (size_t i = 0; i < options.size(); i++) {
                 std::cout << i + 1 << ". ";
                 vnout(options[i].text, 0.5, white, false, true);
                 std::cout << "\033[90m";
                 std::cout << std::endl;
             }
-            std::cout << "ÇëÊäÈëÊı×ÖÑ¡Ôñ (1-" << options.size() << "): ";
+            std::cout << "è¯·è¾“å…¥æ•°å­—é€‰æ‹© (1-" << options.size() << "): ";
 
             int choice = -1;
             while (choice < 1 || choice > static_cast<int>(options.size())) {
@@ -696,15 +696,15 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                     choice = input[0] - '0';
                 }
                 else if (input == "ESC") {
-                    // ²»×öÈÎºÎ´¦Àí£¬¼ÌĞøµÈ´ıÓĞĞ§ÊäÈë
+                    // ä¸åšä»»ä½•å¤„ç†ï¼Œç»§ç»­ç­‰å¾…æœ‰æ•ˆè¾“å…¥
                 }
             }
             Log(LogGrade::INFO, "User choice (fallback after gum error): " + std::to_string(choice));
 
-            // ¼ÇÂ¼Ñ¡Ôñ
+            // è®°å½•é€‰æ‹©
             gameState.recordChoice(options[choice - 1].text);
 
-            // Ìø×ªµ½¶ÔÓ¦µÄ±êÇ©
+            // è·³è½¬åˆ°å¯¹åº”çš„æ ‡ç­¾
             std::string targetLabel = options[choice - 1].label;
             bool isLabel;
             int jumpLine = parseJumpTarget(targetLabel, labels, isLabel);
@@ -715,13 +715,13 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             }
             else {
                 Log(LogGrade::ERR, "Invalid jump target: " + targetLabel);
-                MessageBoxA(NULL, ("´íÎó£ºÑ¡ÔñÄ¿±êÎŞĞ§ - " + targetLabel).c_str(),
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, ("é”™è¯¯ï¼šé€‰æ‹©ç›®æ ‡æ— æ•ˆ - " + targetLabel).c_str(),
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
                 return { -1, 0 };
             }
         }
     }   
-    // ==================== ÇåÆÁÃüÁî ====================
+    // ==================== æ¸…å±å‘½ä»¤ ====================
     if (cmd == "cls" || cmd == "clean" || cmd == "CLS" || cmd == "CLEAN")
     {
 
@@ -729,7 +729,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         system("cls");
         return { 0, currentLine + 1 };
     }
-    // ==================== Ëæ»úÊıÃüÁî ====================
+    // ==================== éšæœºæ•°å‘½ä»¤ ====================
     if (cmd == "random" || cmd == "RANDOM") {
         Log(LogGrade::DEBUG, "RANDOM command detected.");
         std::string varName;
@@ -739,12 +739,12 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
             Log(LogGrade::DEBUG, "Min value: " + std::to_string(minVal));
             Log(LogGrade::DEBUG, "Max value: " + std::to_string(maxVal));
-            // È·±£×îĞ¡Öµ²»´óÓÚ×î´óÖµ
+            // ç¡®ä¿æœ€å°å€¼ä¸å¤§äºæœ€å¤§å€¼
             if (minVal > maxVal) {
                 std::swap(minVal, maxVal);
             }
 
-            // Éú³É[minVal, maxVal]·¶Î§ÄÚµÄËæ»úÊı
+            // ç”Ÿæˆ[minVal, maxVal]èŒƒå›´å†…çš„éšæœºæ•°
             int range = maxVal - minVal + 1;
             int randomValue = minVal + (rand() % range);
 
@@ -754,7 +754,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         return { 0, currentLine + 1 };
     }
 
-    // ==================== ÉèÖÃ±äÁ¿ÃüÁî ====================
+    // ==================== è®¾ç½®å˜é‡å‘½ä»¤ ====================
     if (cmd == "set" || cmd == "SET") {
         Log(LogGrade::DEBUG, "SET command detected.");
         std::string varName, op;
@@ -767,17 +767,17 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                 gameState.addVar(varName, value);
             }
             else if (op == "-=") {
-                gameState.addVar(varName, -value);  // Ìí¼Ó¸ºÖµ
+                gameState.addVar(varName, -value);  // æ·»åŠ è´Ÿå€¼
             }
             else if (op == "*=") {
-                // ´¦Àí³Ë·¨
+                // å¤„ç†ä¹˜æ³•
                 if (gameState.hasVar(varName)) {
                     int current = gameState.getVar(varName);
                     gameState.setVar(varName, current * value);
                 }
             }
             else if (op == "/=") {
-                // ´¦Àí³ı·¨
+                // å¤„ç†é™¤æ³•
                 if (gameState.hasVar(varName) && value != 0) {
                     int current = gameState.getVar(varName);
                     gameState.setVar(varName, current / value);
@@ -786,8 +786,8 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             else {
 
                 Log(LogGrade::ERR, "Invalid operation: " + op);
-                MessageBoxA(NULL, ("´íÎó£ºÎŞĞ§µÄ²Ù×÷·û - " + op).c_str(),
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, ("é”™è¯¯ï¼šæ— æ•ˆçš„æ“ä½œç¬¦ - " + op).c_str(),
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
             }
         }
         Log(LogGrade::INFO, "Did " + varName + " " + op + " " + std::to_string(value));
@@ -795,7 +795,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         return { 0, currentLine + 1 };
     }
 
-    // ==================== Ìø×ªÃüÁî ====================
+    // ==================== è·³è½¬å‘½ä»¤ ====================
     if (cmd == "jump" || cmd == "JUMP") {
 
 
@@ -807,14 +807,14 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             int jumpLine = parseJumpTarget(target, labels, isLabel);
 
             if (jumpLine > 0 && jumpLine <= static_cast<int>(allLines.size())) {
-                // Ìø×ªµ½Ö¸¶¨ĞĞºÅ£¨ĞĞºÅ´Ó1¿ªÊ¼£¬µ«ÎÒÃÇĞèÒª0-basedË÷Òı£©
+                // è·³è½¬åˆ°æŒ‡å®šè¡Œå·ï¼ˆè¡Œå·ä»1å¼€å§‹ï¼Œä½†æˆ‘ä»¬éœ€è¦0-basedç´¢å¼•ï¼‰
                 Log(LogGrade::INFO, "Jump to line: " + std::to_string(jumpLine));
                 return { 1, jumpLine - 1 };
             }
             else {
                 Log(LogGrade::ERR, "Invalid jump target: " + target);
-                MessageBoxA(NULL, ("´íÎó£ºÌø×ªÄ¿±êÎŞĞ§ - " + target).c_str(),
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, ("é”™è¯¯ï¼šè·³è½¬ç›®æ ‡æ— æ•ˆ - " + target).c_str(),
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
             }
         }
 
@@ -824,31 +824,31 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         return { 0, currentLine + 1 };
     }
 
-    // ==================== Ìõ¼şÃüÁî ====================
+    // ==================== æ¡ä»¶å‘½ä»¤ ====================
     if (cmd == "if" || cmd == "IF") {
         Log(LogGrade::DEBUG, "IF command detected.");
-        // ¶ÁÈ¡Õû¸öÌõ¼ş±í´ïÊ½
+        // è¯»å–æ•´ä¸ªæ¡ä»¶è¡¨è¾¾å¼
         std::string conditionExpr;
         getline(ss, conditionExpr);
 
-        // ·Ö¸îÌõ¼ş±í´ïÊ½ºÍÌø×ªÄ¿±ê
+        // åˆ†å‰²æ¡ä»¶è¡¨è¾¾å¼å’Œè·³è½¬ç›®æ ‡
         size_t lastSpace = conditionExpr.find_last_of(' ');
         if (lastSpace == std::string::npos) {
-            Log(LogGrade::ERR, "Invalid IF command format.At "+std::to_string(currentLine));
+            Log(LogGrade::ERR, "Invalid IF command format.At "+std::to_string(currentLine+1));
             Log(LogGrade::ERR, "Condition expression: " + conditionExpr);
             Log(LogGrade::ERR, "Last space position: " + std::to_string(lastSpace));
-            MessageBoxA(NULL, "´íÎó£ºifÃüÁî¸ñÊ½²»ÕıÈ·", "´íÎó", MB_ICONERROR | MB_OK);
+            MessageBoxA(NULL, "é”™è¯¯ï¼šifå‘½ä»¤æ ¼å¼ä¸æ­£ç¡®", "é”™è¯¯", MB_ICONERROR | MB_OK);
             return { 0, currentLine + 1 };
         }
 
         std::string target = conditionExpr.substr(lastSpace + 1);
         conditionExpr = conditionExpr.substr(0, lastSpace);
 
-        // È¥³ı¶àÓà¿Õ¸ñ
+        // å»é™¤å¤šä½™ç©ºæ ¼
         conditionExpr.erase(0, conditionExpr.find_first_not_of(" "));
         conditionExpr.erase(conditionExpr.find_last_not_of(" ") + 1);
 
-        // ·Ö´Ê²¢¼ÆËãÌõ¼ş
+        // åˆ†è¯å¹¶è®¡ç®—æ¡ä»¶
         std::vector<ConditionToken> tokens = tokenizeCondition(conditionExpr);
         size_t index = 0;
         bool conditionMet = evaluateCondition(tokens, gameState, index);
@@ -860,34 +860,34 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
             if (jumpLine > 0 && jumpLine <= static_cast<int>(allLines.size())) {
                 Log(LogGrade::INFO, "Jump to line: " + std::to_string(jumpLine));
-                return { 1, jumpLine - 1 }; // Ìø×ªµ½Ö¸¶¨ĞĞ£¨0-basedË÷Òı£©
+                return { 1, jumpLine - 1 }; // è·³è½¬åˆ°æŒ‡å®šè¡Œï¼ˆ0-basedç´¢å¼•ï¼‰
             }
             else {
                 Log(LogGrade::ERR, "Invalid jump target: " + target);
-                MessageBoxA(NULL, ("´íÎó£ºÌø×ªÄ¿±êÎŞĞ§ - " + target).c_str(),
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, ("é”™è¯¯ï¼šè·³è½¬ç›®æ ‡æ— æ•ˆ - " + target).c_str(),
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
             }
         }
         Log(LogGrade::INFO, "Condition not met, continue to next line.");
-        return { 0, currentLine + 1 }; // ¼ÌĞøÖ´ĞĞÏÂÒ»ĞĞ
+        return { 0, currentLine + 1 }; // ç»§ç»­æ‰§è¡Œä¸‹ä¸€è¡Œ
     }
-    // ==================== ²å¼şÃüÁî ====================
-// ==================== ²å¼şÃüÁî ====================
+    // ==================== æ’ä»¶å‘½ä»¤ ====================
+// ==================== æ’ä»¶å‘½ä»¤ ====================
     if (cmd == "plugin" || cmd == "PLUGIN" || cmd == "runplugin" || cmd == "RUNPLUGIN") {
         Log(LogGrade::INFO, "PLUGIN command detected at line " + std::to_string(currentLine + 1));
 
         std::string pluginName, runArgs;
 
-        // È¥³ıÃüÁî²¿·Ö£¬»ñÈ¡Ê£ÓàÄÚÈİ
+        // å»é™¤å‘½ä»¤éƒ¨åˆ†ï¼Œè·å–å‰©ä½™å†…å®¹
         std::string rest;
         getline(ss, rest);
 
-        // ÊÖ¶¯½âÎöÒıºÅ£¬Ö§³Ö\"×ªÒå
+        // æ‰‹åŠ¨è§£æå¼•å·ï¼Œæ”¯æŒ\"è½¬ä¹‰
         size_t firstQuote = std::string::npos;
         bool inQuotes = false;
         bool escaped = false;
 
-        // Ê×ÏÈÕÒµ½µÚÒ»¸ö·Ç×ªÒåµÄÒıºÅ
+        // é¦–å…ˆæ‰¾åˆ°ç¬¬ä¸€ä¸ªéè½¬ä¹‰çš„å¼•å·
         for (size_t i = 0; i < rest.length(); i++) {
             if (escaped) {
                 escaped = false;
@@ -906,30 +906,30 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
         }
 
         if (firstQuote == std::string::npos) {
-            // ¸ñÊ½1£ºÃ»ÓĞÒıºÅ£¬Ö»ÓĞ²å¼şÃû
+            // æ ¼å¼1ï¼šæ²¡æœ‰å¼•å·ï¼Œåªæœ‰æ’ä»¶å
             std::stringstream restSS(rest);
             if (!(restSS >> pluginName)) {
                 Log(LogGrade::ERR, "Invalid plugin command format: missing plugin name");
-                MessageBoxA(NULL, "´íÎó£ºpluginÃüÁî¸ñÊ½²»ÕıÈ·£¬È±ÉÙ²å¼şÃû",
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, "é”™è¯¯ï¼špluginå‘½ä»¤æ ¼å¼ä¸æ­£ç¡®ï¼Œç¼ºå°‘æ’ä»¶å",
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
                 return { 0, currentLine + 1 };
             }
-            runArgs = "";  // ÎŞ²ÎÊı
+            runArgs = "";  // æ— å‚æ•°
         }
         else {
-            // ¸ñÊ½2»ò3£ºÓĞÒıºÅ
+            // æ ¼å¼2æˆ–3ï¼šæœ‰å¼•å·
 
-            // »ñÈ¡²å¼şÃû£¨µÚÒ»¸öÒıºÅÇ°µÄ²¿·Ö£©
+            // è·å–æ’ä»¶åï¼ˆç¬¬ä¸€ä¸ªå¼•å·å‰çš„éƒ¨åˆ†ï¼‰
             std::string beforeQuote = rest.substr(0, firstQuote);
             std::stringstream beforeSS(beforeQuote);
             if (!(beforeSS >> pluginName)) {
                 Log(LogGrade::ERR, "Invalid plugin command format: missing plugin name before quotes");
-                MessageBoxA(NULL, "´íÎó£ºpluginÃüÁî¸ñÊ½²»ÕıÈ·£¬ÒıºÅÇ°È±ÉÙ²å¼şÃû",
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, "é”™è¯¯ï¼špluginå‘½ä»¤æ ¼å¼ä¸æ­£ç¡®ï¼Œå¼•å·å‰ç¼ºå°‘æ’ä»¶å",
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
                 return { 0, currentLine + 1 };
             }
 
-            // ²éÕÒ½áÊøÒıºÅ£¬Ö§³Ö\"×ªÒå
+            // æŸ¥æ‰¾ç»“æŸå¼•å·ï¼Œæ”¯æŒ\"è½¬ä¹‰
             escaped = false;
             size_t secondQuote = std::string::npos;
 
@@ -952,15 +952,15 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
             if (secondQuote == std::string::npos) {
                 Log(LogGrade::ERR, "Invalid plugin command format: missing closing quote");
-                MessageBoxA(NULL, "´íÎó£ºpluginÃüÁî¸ñÊ½²»ÕıÈ·£¬È±ÉÙ½áÊøÒıºÅ",
-                    "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, "é”™è¯¯ï¼špluginå‘½ä»¤æ ¼å¼ä¸æ­£ç¡®ï¼Œç¼ºå°‘ç»“æŸå¼•å·",
+                    "é”™è¯¯", MB_ICONERROR | MB_OK);
                 return { 0, currentLine + 1 };
             }
 
-            // ÌáÈ¡ÒıºÅÄÚµÄ²ÎÊı£¨´ø×ªÒå´¦Àí£©
+            // æå–å¼•å·å†…çš„å‚æ•°ï¼ˆå¸¦è½¬ä¹‰å¤„ç†ï¼‰
             std::string rawArgs = rest.substr(firstQuote + 1, secondQuote - firstQuote - 1);
 
-            // ´¦Àí×ªÒå×Ö·û
+            // å¤„ç†è½¬ä¹‰å­—ç¬¦
             std::string unescapedArgs;
             escaped = false;
 
@@ -982,7 +982,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                         unescapedArgs += '\r';
                     }
                     else {
-                        unescapedArgs += rawArgs[i]; // ±£ÁôÆäËû×ªÒå×Ö·û
+                        unescapedArgs += rawArgs[i]; // ä¿ç•™å…¶ä»–è½¬ä¹‰å­—ç¬¦
                     }
                     escaped = false;
                 }
@@ -996,22 +996,22 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
             runArgs = unescapedArgs;
 
-            // ¼ì²éÒıºÅºóÊÇ·ñ»¹ÓĞÄÚÈİ£¨²»Ó¦¸ÃÓĞ£©
+            // æ£€æŸ¥å¼•å·åæ˜¯å¦è¿˜æœ‰å†…å®¹ï¼ˆä¸åº”è¯¥æœ‰ï¼‰
             std::string afterQuote = rest.substr(secondQuote + 1);
             size_t nonSpacePos = afterQuote.find_first_not_of(" \t\r\n");
             if (nonSpacePos != std::string::npos) {
                 Log(LogGrade::WARNING, "Extra characters after closing quote in plugin command: " + afterQuote.substr(nonSpacePos));
-                // ²»ÊÓÎª´íÎó£¬Ö»¼ÇÂ¼¾¯¸æ
+                // ä¸è§†ä¸ºé”™è¯¯ï¼Œåªè®°å½•è­¦å‘Š
             }
         }
 
-        // È¥³ı²å¼şÃûÖĞµÄ¶àÓà¿Õ¸ñ
+        // å»é™¤æ’ä»¶åä¸­çš„å¤šä½™ç©ºæ ¼
         pluginName = trim(pluginName);
 
         Log(LogGrade::DEBUG, "Plugin name: " + pluginName);
         Log(LogGrade::DEBUG, "Plugin arguments (raw, with escapes): \"" + runArgs + "\"");
 
-        // ´¦Àí²ÎÊıÖĞµÄÌØÊâÂ·¾¶±ê¼Ç£º$file{} ºÍ $log£¨Í¬ÑùĞèÒªÖ§³Ö×ªÒå£©
+        // å¤„ç†å‚æ•°ä¸­çš„ç‰¹æ®Šè·¯å¾„æ ‡è®°ï¼š$file{} å’Œ $logï¼ˆåŒæ ·éœ€è¦æ”¯æŒè½¬ä¹‰ï¼‰
         if (!runArgs.empty()) {
             std::string processedArgs = "";
             size_t pos = 0;
@@ -1019,7 +1019,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
             while (pos < runArgs.length()) {
                 if (inEscape) {
-                    // µ±Ç°×Ö·ûÊÇ×ªÒå×Ö·ûµÄÒ»²¿·Ö£¬Ö±½Ó¸´ÖÆ
+                    // å½“å‰å­—ç¬¦æ˜¯è½¬ä¹‰å­—ç¬¦çš„ä¸€éƒ¨åˆ†ï¼Œç›´æ¥å¤åˆ¶
                     processedArgs += runArgs[pos];
                     inEscape = false;
                     pos++;
@@ -1027,38 +1027,38 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                 }
 
                 if (runArgs[pos] == '\\') {
-                    // ×ªÒå×Ö·û¿ªÊ¼
+                    // è½¬ä¹‰å­—ç¬¦å¼€å§‹
                     if (pos + 1 < runArgs.length()) {
-                        // ¼ì²éÊÇ·ñÊÇÌØÊâ±ê¼ÇµÄÒ»²¿·Ö
+                        // æ£€æŸ¥æ˜¯å¦æ˜¯ç‰¹æ®Šæ ‡è®°çš„ä¸€éƒ¨åˆ†
                         char nextChar = runArgs[pos + 1];
                         if (nextChar == '$' || nextChar == '{' || nextChar == '}') {
-                            // ÕâĞ©×Ö·ûĞèÒª×ªÒå
+                            // è¿™äº›å­—ç¬¦éœ€è¦è½¬ä¹‰
                             processedArgs += nextChar;
                             pos += 2;
                         }
                         else {
-                            // ÆÕÍ¨×ªÒå£¬±£Áô·´Ğ±¸Ü
+                            // æ™®é€šè½¬ä¹‰ï¼Œä¿ç•™åæ–œæ 
                             processedArgs += runArgs[pos];
                             inEscape = true;
                             pos++;
                         }
                     }
                     else {
-                        // ĞĞÎ²µÄ·´Ğ±¸Ü
+                        // è¡Œå°¾çš„åæ–œæ 
                         processedArgs += runArgs[pos];
                         pos++;
                     }
                 }
-                // ¼ì²é $file{...}
+                // æ£€æŸ¥ $file{...}
                 else if (pos < runArgs.length() - 5 && runArgs.substr(pos, 6) == "$file{") {
-                    size_t braceStart = pos + 5; // $file{ µÄ { Î»ÖÃ
+                    size_t braceStart = pos + 5; // $file{ çš„ { ä½ç½®
                     size_t braceEnd = std::string::npos;
                     int braceDepth = 1;
 
-                    // ²éÕÒÆ¥ÅäµÄ }£¬Ö§³ÖÇ¶Ì×{}
+                    // æŸ¥æ‰¾åŒ¹é…çš„ }ï¼Œæ”¯æŒåµŒå¥—{}
                     for (size_t i = braceStart + 1; i < runArgs.length(); i++) {
                         if (runArgs[i] == '\\') {
-                            i++; // Ìø¹ı×ªÒå×Ö·û
+                            i++; // è·³è¿‡è½¬ä¹‰å­—ç¬¦
                             continue;
                         }
 
@@ -1075,16 +1075,16 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                     }
 
                     if (braceEnd != std::string::npos) {
-                        // ÌáÈ¡Ïà¶ÔÂ·¾¶£¨ĞèÒª´¦Àí×ªÒå£©
+                        // æå–ç›¸å¯¹è·¯å¾„ï¼ˆéœ€è¦å¤„ç†è½¬ä¹‰ï¼‰
                         std::string rawPath = runArgs.substr(braceStart + 1, braceEnd - braceStart - 1);
                         std::string relativePath = "";
 
-                        // È¥³ıÂ·¾¶ÖĞµÄ×ªÒå
+                        // å»é™¤è·¯å¾„ä¸­çš„è½¬ä¹‰
                         for (size_t i = 0; i < rawPath.length(); i++) {
                             if (rawPath[i] == '\\' && i + 1 < rawPath.length()) {
                                 if (rawPath[i + 1] == '\\' || rawPath[i + 1] == '{' || rawPath[i + 1] == '}') {
                                     relativePath += rawPath[i + 1];
-                                    i++; // Ìø¹ıÏÂÒ»¸ö×Ö·û
+                                    i++; // è·³è¿‡ä¸‹ä¸€ä¸ªå­—ç¬¦
                                 }
                                 else {
                                     relativePath += rawPath[i];
@@ -1095,15 +1095,15 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                             }
                         }
 
-                        // ×ª»»Îª¾ø¶ÔÂ·¾¶
+                        // è½¬æ¢ä¸ºç»å¯¹è·¯å¾„
                         std::string absolutePath;
                         if (!where.empty()) {
                             absolutePath = where + relativePath;
 
-                            // ¹æ·¶»¯Â·¾¶
+                            // è§„èŒƒåŒ–è·¯å¾„
                             std::replace(absolutePath.begin(), absolutePath.end(), '/', '\\');
 
-                            // ´¦Àí .. Ä¿Â¼
+                            // å¤„ç† .. ç›®å½•
                             size_t dotDotPos;
                             while ((dotDotPos = absolutePath.find("\\..\\")) != std::string::npos) {
                                 size_t prevSlash = absolutePath.rfind('\\', dotDotPos - 1);
@@ -1127,17 +1127,17 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                         pos = braceEnd + 1;
                     }
                     else {
-                        // Ã»ÓĞÕÒµ½½áÊøµÄ }£¬Ô­Ñù±£Áô
+                        // æ²¡æœ‰æ‰¾åˆ°ç»“æŸçš„ }ï¼ŒåŸæ ·ä¿ç•™
                         processedArgs += runArgs.substr(pos, 6);
                         pos += 6;
                     }
                 }
-                // ¼ì²é $log
+                // æ£€æŸ¥ $log
                 else if (pos < runArgs.length() - 3 && runArgs.substr(pos, 4) == "$log") {
-                    // ×ª»»ÎªÈÕÖ¾ÎÄ¼şµÄ¾ø¶ÔÂ·¾¶
+                    // è½¬æ¢ä¸ºæ—¥å¿—æ–‡ä»¶çš„ç»å¯¹è·¯å¾„
                     std::string logPath;
 
-                    // »ñÈ¡µ±Ç°¹¤×÷Ä¿Â¼
+                    // è·å–å½“å‰å·¥ä½œç›®å½•
                     char buffer[MAX_PATH];
                     if (GetCurrentDirectoryA(MAX_PATH, buffer) != 0) {
                         logPath = std::string(buffer) + "\\pvn_engine.log";
@@ -1151,15 +1151,15 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
 
                     pos += 4;
                 }
-                // ´¦Àí±äÁ¿Õ¼Î»·û ${var}
+                // å¤„ç†å˜é‡å ä½ç¬¦ ${var}
                 else if (pos < runArgs.length() - 2 && runArgs.substr(pos, 2) == "${") {
                     size_t varEnd = std::string::npos;
                     int braceDepth = 1;
 
-                    // ²éÕÒÆ¥ÅäµÄ }£¬Ö§³ÖÇ¶Ì×{}
+                    // æŸ¥æ‰¾åŒ¹é…çš„ }ï¼Œæ”¯æŒåµŒå¥—{}
                     for (size_t i = pos + 2; i < runArgs.length(); i++) {
                         if (runArgs[i] == '\\') {
-                            i++; // Ìø¹ı×ªÒå×Ö·û
+                            i++; // è·³è¿‡è½¬ä¹‰å­—ç¬¦
                             continue;
                         }
 
@@ -1178,13 +1178,13 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                     if (varEnd != std::string::npos) {
                         std::string varName = runArgs.substr(pos + 2, varEnd - pos - 2);
 
-                        // ÏÈ¼ì²é×Ö·û´®±äÁ¿
+                        // å…ˆæ£€æŸ¥å­—ç¬¦ä¸²å˜é‡
                         std::string stringValue = gameState.getStringVar(varName);
                         if (!stringValue.empty()) {
                             processedArgs += stringValue;
                         }
                         else {
-                            // ¼ì²éÕûÊı±äÁ¿
+                            // æ£€æŸ¥æ•´æ•°å˜é‡
                             int intValue = gameState.getVar(varName);
                             processedArgs += std::to_string(intValue);
                         }
@@ -1192,13 +1192,13 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                         pos = varEnd + 1;
                     }
                     else {
-                        // Ã»ÓĞÕÒµ½½áÊøµÄ }£¬Ô­Ñù±£Áô
+                        // æ²¡æœ‰æ‰¾åˆ°ç»“æŸçš„ }ï¼ŒåŸæ ·ä¿ç•™
                         processedArgs += runArgs[pos];
                         pos++;
                     }
                 }
                 else {
-                    // ÆÕÍ¨×Ö·û£¬Ö±½Ó¸´ÖÆ
+                    // æ™®é€šå­—ç¬¦ï¼Œç›´æ¥å¤åˆ¶
                     processedArgs += runArgs[pos];
                     pos++;
                 }
@@ -1208,7 +1208,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             Log(LogGrade::DEBUG, "Plugin arguments (fully processed): \"" + runArgs + "\"");
         }
 
-        // Ö´ĞĞ²å¼ş
+        // æ‰§è¡Œæ’ä»¶
         bool success = runPlugin(pluginName, runArgs);
 
         if (success) {
@@ -1218,25 +1218,25 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             Log(LogGrade::ERR, "Failed to execute plugin: " + pluginName);
         }
 
-        // ¼ÌĞøÖ´ĞĞÏÂÒ»ĞĞ
+        // ç»§ç»­æ‰§è¡Œä¸‹ä¸€è¡Œ
         return { 0, currentLine + 1 };
-    }    // ==================== ²å¼şÒÀÀµÉùÃ÷ÃüÁî ====================
+    }    // ==================== æ’ä»¶ä¾èµ–å£°æ˜å‘½ä»¤ ====================
     if (cmd == "use" || cmd == "USE") {
         Log(LogGrade::INFO, "USE command detected at line " + std::to_string(currentLine + 1));
 
         std::string pluginName, pluginVersion = "";
 
-        // ¶ÁÈ¡²å¼şÃû
+        // è¯»å–æ’ä»¶å
         if (!(ss >> pluginName)) {
             Log(LogGrade::ERR, "Invalid use command format: missing plugin name");
-            MessageBoxA(NULL, "´íÎó£ºuseÃüÁî¸ñÊ½²»ÕıÈ·£¬È±ÉÙ²å¼şÃû",
-                "´íÎó", MB_ICONERROR | MB_OK);
+            MessageBoxA(NULL, "é”™è¯¯ï¼šuseå‘½ä»¤æ ¼å¼ä¸æ­£ç¡®ï¼Œç¼ºå°‘æ’ä»¶å",
+                "é”™è¯¯", MB_ICONERROR | MB_OK);
             return { 0, currentLine + 1 };
         }
 
-        // ¼ì²éÊÇ·ñÓĞ°æ±¾ºÅ£¨¿ÉÑ¡£©
+        // æ£€æŸ¥æ˜¯å¦æœ‰ç‰ˆæœ¬å·ï¼ˆå¯é€‰ï¼‰
         if (ss >> pluginVersion) {
-            // °æ±¾ºÅ¿ÉÒÔÓĞ¿Õ¸ñ£¬¶ÁÈ¡Ê£Óà²¿·Ö
+            // ç‰ˆæœ¬å·å¯ä»¥æœ‰ç©ºæ ¼ï¼Œè¯»å–å‰©ä½™éƒ¨åˆ†
             std::string remaining;
             getline(ss, remaining);
             if (!remaining.empty() && remaining[0] == ' ') {
@@ -1248,37 +1248,37 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
             Log(LogGrade::DEBUG, "Plugin version specified: " + pluginVersion);
         }
 
-        // ¼ì²é²å¼şÊÇ·ñ´æÔÚ
+        // æ£€æŸ¥æ’ä»¶æ˜¯å¦å­˜åœ¨
         std::string pluginDir = "Plugins\\" + pluginName;
         if (!fs::exists(pluginDir)) {
             Log(LogGrade::ERR, "Plugin not found: " + pluginName);
-            vnout("´íÎó£ºËùĞèµÄ²å¼ş '" + pluginName + "' Î´°²×°", 0.5, red, true);
+            vnout("é”™è¯¯ï¼šæ‰€éœ€çš„æ’ä»¶ '" + pluginName + "' æœªå®‰è£…", 0.5, red, true);
             std::cout << std::endl;
 
-            // ÏÔÊ¾²å¼ş°²×°ÌáÊ¾
+            // æ˜¾ç¤ºæ’ä»¶å®‰è£…æç¤º
             std::cout << "==============================" << std::endl;
-            std::cout << "²å¼ş '" << pluginName << "' Î´°²×°" << std::endl;
-            std::cout << "ÇëÖ´ĞĞÒÔÏÂ²Ù×÷£º" << std::endl;
-            std::cout << "1. ÏÂÔØ²å¼şµ½ Plugins/" << pluginName << "/ Ä¿Â¼" << std::endl;
-            std::cout << "2. È·±£Ä¿Â¼ÖĞÓĞ about.cfg ÅäÖÃÎÄ¼ş" << std::endl;
-            std::cout << "3. ÖØĞÂÆô¶¯ÓÎÏ·" << std::endl;
+            std::cout << "æ’ä»¶ '" << pluginName << "' æœªå®‰è£…" << std::endl;
+            std::cout << "è¯·æ‰§è¡Œä»¥ä¸‹æ“ä½œï¼š" << std::endl;
+            std::cout << "1. ä¸‹è½½æ’ä»¶åˆ° Plugins/" << pluginName << "/ ç›®å½•" << std::endl;
+            std::cout << "2. ç¡®ä¿ç›®å½•ä¸­æœ‰ about.cfg é…ç½®æ–‡ä»¶" << std::endl;
+            std::cout << "3. é‡æ–°å¯åŠ¨æ¸¸æˆ" << std::endl;
             std::cout << "==============================" << std::endl;
-            std::cout << std::endl << "°´ÈÎÒâ¼ü·µ»ØÖ÷²Ëµ¥..." << std::endl;
+            std::cout << std::endl << "æŒ‰ä»»æ„é”®è¿”å›ä¸»èœå•..." << std::endl;
             getKeyName();
-            return { -1, 0 }; // ·µ»ØÖ÷²Ëµ¥
+            return { -1, 0 }; // è¿”å›ä¸»èœå•
         }
 
-        // ¼ì²éabout.cfgÎÄ¼ş
+        // æ£€æŸ¥about.cfgæ–‡ä»¶
         std::string aboutFilePath = pluginDir + "\\about.cfg";
         if (!fs::exists(aboutFilePath)) {
             Log(LogGrade::ERR, "Plugin configuration file not found: " + pluginName);
-            vnout("´íÎó£º²å¼ş '" + pluginName + "' ÅäÖÃÎÄ¼şÈ±Ê§", 0.5, red, true);
-            std::cout << std::endl << "°´ÈÎÒâ¼ü¼ÌĞø..." << std::endl;
+            vnout("é”™è¯¯ï¼šæ’ä»¶ '" + pluginName + "' é…ç½®æ–‡ä»¶ç¼ºå¤±", 0.5, red, true);
+            std::cout << std::endl << "æŒ‰ä»»æ„é”®ç»§ç»­..." << std::endl;
             getKeyName();
             return { 0, currentLine + 1 };
         }
 
-        // ¶ÁÈ¡²å¼şÅäÖÃ¼ì²é°æ±¾£¨Èç¹ûĞèÒª£©
+        // è¯»å–æ’ä»¶é…ç½®æ£€æŸ¥ç‰ˆæœ¬ï¼ˆå¦‚æœéœ€è¦ï¼‰
         if (!pluginVersion.empty()) {
             std::ifstream aboutFile(aboutFilePath);
             if (aboutFile.is_open()) {
@@ -1296,7 +1296,7 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                         std::string key = trim(trimmedLine.substr(0, equalsPos));
                         std::string value = trim(trimmedLine.substr(equalsPos + 1));
 
-                        // È¥³ıÒıºÅ
+                        // å»é™¤å¼•å·
                         if (value.length() >= 2 &&
                             ((value.front() == '"' && value.back() == '"') ||
                                 (value.front() == '\'' && value.back() == '\''))) {
@@ -1312,19 +1312,19 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                 aboutFile.close();
 
                 if (!fileVersion.empty()) {
-                    // ¼òµ¥µÄ°æ±¾ºÅÆ¥Åä£¨¾«È·Æ¥Åä£©
+                    // ç®€å•çš„ç‰ˆæœ¬å·åŒ¹é…ï¼ˆç²¾ç¡®åŒ¹é…ï¼‰
                     if (fileVersion != pluginVersion) {
                         Log(LogGrade::WARNING, "Plugin version mismatch: required=" + pluginVersion +
                             ", installed=" + fileVersion);
 
                         std::cout << std::endl;
                         std::cout << "==============================" << std::endl;
-                        std::cout << "²å¼ş°æ±¾¾¯¸æ" << std::endl;
-                        std::cout << "½Å±¾ĞèÒª: " << pluginName << " v" << pluginVersion << std::endl;
-                        std::cout << "ÒÑ°²×°: " << pluginName << " v" << fileVersion << std::endl;
+                        std::cout << "æ’ä»¶ç‰ˆæœ¬è­¦å‘Š" << std::endl;
+                        std::cout << "è„šæœ¬éœ€è¦: " << pluginName << " v" << pluginVersion << std::endl;
+                        std::cout << "å·²å®‰è£…: " << pluginName << " v" << fileVersion << std::endl;
                         std::cout << std::endl;
 
-                        // ¼òµ¥µÄ°æ±¾ºÅ±È½Ï£¨½öÖ§³ÖÊı×Ö°æ±¾ºÅÈç 1.0.0£©
+                        // ç®€å•çš„ç‰ˆæœ¬å·æ¯”è¾ƒï¼ˆä»…æ”¯æŒæ•°å­—ç‰ˆæœ¬å·å¦‚ 1.0.0ï¼‰
                         try {
                             std::stringstream requiredSS(pluginVersion);
                             std::stringstream installedSS(fileVersion);
@@ -1342,11 +1342,11 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                                         break;
                                     }
                                     else if (instNum > reqNum) {
-                                        break; // Ö÷°æ±¾ºÅ¸ü¸ß£¬ÔÊĞí¼ÌĞø
+                                        break; // ä¸»ç‰ˆæœ¬å·æ›´é«˜ï¼Œå…è®¸ç»§ç»­
                                     }
                                 }
                                 catch (...) {
-                                    // °æ±¾ºÅ²»ÊÇ´¿Êı×Ö£¬Ê¹ÓÃ¾«È·Æ¥Åä
+                                    // ç‰ˆæœ¬å·ä¸æ˜¯çº¯æ•°å­—ï¼Œä½¿ç”¨ç²¾ç¡®åŒ¹é…
                                     if (fileVersion != pluginVersion) {
                                         versionOk = false;
                                         break;
@@ -1355,44 +1355,44 @@ std::pair<int, size_t> executeLine(const std::string& line, GameState& gameState
                             }
 
                             if (!versionOk) {
-                                std::cout << "¾¯¸æ£º²å¼ş°æ±¾¿ÉÄÜ²»¼æÈİ" << std::endl;
-                                std::cout << "½¨Òé°²×° " << pluginName << " v" << pluginVersion << std::endl;
+                                std::cout << "è­¦å‘Šï¼šæ’ä»¶ç‰ˆæœ¬å¯èƒ½ä¸å…¼å®¹" << std::endl;
+                                std::cout << "å»ºè®®å®‰è£… " << pluginName << " v" << pluginVersion << std::endl;
                             }
                             else {
-                                std::cout << "°æ±¾¼ì²éÍ¨¹ı" << std::endl;
+                                std::cout << "ç‰ˆæœ¬æ£€æŸ¥é€šè¿‡" << std::endl;
                             }
                         }
                         catch (...) {
-                            std::cout << "¾¯¸æ£ºÎŞ·¨±È½Ï°æ±¾ºÅ" << std::endl;
+                            std::cout << "è­¦å‘Šï¼šæ— æ³•æ¯”è¾ƒç‰ˆæœ¬å·" << std::endl;
                         }
 
                         std::cout << "==============================" << std::endl;
-                        std::cout << std::endl << "°´ÈÎÒâ¼ü¼ÌĞø£¨»ò°´ESC·µ»ØÖ÷²Ëµ¥£©..." << std::endl;
+                        std::cout << std::endl << "æŒ‰ä»»æ„é”®ç»§ç»­ï¼ˆæˆ–æŒ‰ESCè¿”å›ä¸»èœå•ï¼‰..." << std::endl;
 
                         std::string key = getKeyName();
                         if (key == "ESC") {
-                            return { -1, 0 }; // ·µ»ØÖ÷²Ëµ¥
+                            return { -1, 0 }; // è¿”å›ä¸»èœå•
                         }
                     }
                 }
             }
         }
 
-        // ¼ÇÂ¼²å¼şÒÀÀµ
+        // è®°å½•æ’ä»¶ä¾èµ–
         Log(LogGrade::INFO, "Plugin dependency registered: " + pluginName +
             (pluginVersion.empty() ? "" : " v" + pluginVersion));
 
-        // ¼ÌĞøÖ´ĞĞÏÂÒ»ĞĞ
+        // ç»§ç»­æ‰§è¡Œä¸‹ä¸€è¡Œ
         return { 0, currentLine + 1 };
     }
-    //»¶Ó­À´pull request£¨Ï²£©
-    //ĞÂÃüÁî¿ª·¢Ö¸ÄÏ¼ûReadMe/ÏÂµÄÎÄµµ
+    //æ¬¢è¿æ¥pull requestï¼ˆå–œï¼‰
+    //æ–°å‘½ä»¤å¼€å‘æŒ‡å—è§ReadMe/ä¸‹çš„æ–‡æ¡£
 
-    // ==================== Î´ÖªÃüÁî ====================
+    // ==================== æœªçŸ¥å‘½ä»¤ ====================
     Log(LogGrade::ERR, "Unknown command: " + cmd);
-    MessageBoxA(NULL, ("´íÎó£ºÎ´ÖªµÄPGNÃüÁî - " + cmd).c_str(),
-        "´íÎó", MB_ICONERROR | MB_OK);
-    return { 0, currentLine + 1 }; // ¼ÌĞøÖ´ĞĞÏÂÒ»ĞĞ
+    MessageBoxA(NULL, ("é”™è¯¯ï¼šæœªçŸ¥çš„PGNå‘½ä»¤ - " + cmd).c_str(),
+        "é”™è¯¯", MB_ICONERROR | MB_OK);
+    return { 0, currentLine + 1 }; // ç»§ç»­æ‰§è¡Œä¸‹ä¸€è¡Œ
 
 
 }

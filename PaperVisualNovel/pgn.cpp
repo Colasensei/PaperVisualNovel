@@ -1,11 +1,11 @@
-// pgn.cpp
+ï»¿// pgn.cpp
 #include "gamestate.h"
 #include "parser.h"
 #include "fileutils.h"
 #include "ui.h"
 #include "condition.h"
 
-// ==================== ×Ö·û´®×ªÕûÊı£¨°²È«°æ£© ====================
+// ==================== å­—ç¬¦ä¸²è½¬æ•´æ•°ï¼ˆå®‰å…¨ç‰ˆï¼‰ ====================
 
 bool safeStringToInt(const std::string& str, int& result) {
     try {
@@ -18,7 +18,7 @@ bool safeStringToInt(const std::string& str, int& result) {
 }
 
 
-// ÊµÏÖ RunPgn() º¯Êı
+// å®ç° RunPgn() å‡½æ•°
 void RunPgn(const string& where, const string& file, bool loadFromSave,
     size_t savedLine, const GameState& savedState ) {
     system("cls");
@@ -26,7 +26,7 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
     Log(LogGrade::INFO, "Preparing to run game "+file);
     string pgn = where + file;
     Log(LogGrade::DEBUG, "Game file path: " + pgn);
-    // Ê¹ÓÃWindows API½øĞĞÕıÈ·µÄ±àÂë×ª»»
+    // ä½¿ç”¨Windows APIè¿›è¡Œæ­£ç¡®çš„ç¼–ç è½¬æ¢
     int len = MultiByteToWideChar(CP_ACP, 0, file.c_str(), -1, NULL, 0);
     wchar_t* wstr = new wchar_t[len];
     MultiByteToWideChar(CP_ACP, 0, file.c_str(), -1, wstr, len);
@@ -39,7 +39,7 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
     ifstream in(pgn);
     if (!in.is_open()) {
         Log(LogGrade::ERR, "Failed to open game file "+pgn);
-        MessageBoxA(NULL, "´íÎó£ºÎŞ·¨´ò¿ªÓÎÏ·ÎÄ¼ş", "´íÎó", MB_ICONERROR | MB_OK);
+        MessageBoxA(NULL, "é”™è¯¯ï¼šæ— æ³•æ‰“å¼€æ¸¸æˆæ–‡ä»¶", "é”™è¯¯", MB_ICONERROR | MB_OK);
         return;
     }
 
@@ -82,7 +82,7 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
     Log(LogGrade::DEBUG, "Loaded all endings");
     size_t currentLine = loadFromSave ? savedLine : 0;
 
-    // ÉèÖÃÈ«¾ÖÓÎÏ·ĞÅÏ¢
+    // è®¾ç½®å…¨å±€æ¸¸æˆä¿¡æ¯
     g_currentGameInfo.scriptPath = pgn;
     g_currentGameInfo.gameState = &gameState;
     Log(LogGrade::DEBUG, "Set global game info");
@@ -91,19 +91,19 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
     Log(LogGrade::INFO, "Starting game loop");
 
     while (currentLine < lines.size()) {
-        // ¸üĞÂµ±Ç°ĞĞºÅ
+        // æ›´æ–°å½“å‰è¡Œå·
         g_currentGameInfo.currentLine = currentLine;
         
         auto [status, nextLine] = executeLine(lines[currentLine], gameState,
             currentLine, lines, where, 0, labels);
 
         if (status == -1) {
-            // ESC²Ëµ¥ÖĞÑ¡ÔñÁË±£´æ²¢ÍË³ö
+            // ESCèœå•ä¸­é€‰æ‹©äº†ä¿å­˜å¹¶é€€å‡º
             Log(LogGrade::INFO, "ESC menu selected save and exit");
             return;
         }
         else if (status == -2) {
-            // ESC²Ëµ¥ÖĞÑ¡ÔñÁË²»±£´æÍË³ö
+            // ESCèœå•ä¸­é€‰æ‹©äº†ä¸ä¿å­˜é€€å‡º
             Log(LogGrade::INFO, "ESC menu selected exit without saving");
             return;
         }
@@ -117,17 +117,17 @@ void RunPgn(const string& where, const string& file, bool loadFromSave,
         }
     }
 
-    // ÓÎÏ·Õı³£½áÊø£¬Çå³ıÈ«¾ÖĞÅÏ¢
+    // æ¸¸æˆæ­£å¸¸ç»“æŸï¼Œæ¸…é™¤å…¨å±€ä¿¡æ¯
     g_currentGameInfo = { "", 0, nullptr };
     Log(LogGrade::INFO, "Game loop finished");
 
-    cout << "½Å±¾Ö´ĞĞÍê±Ï" << endl;
+    cout << "è„šæœ¬æ‰§è¡Œå®Œæ¯•" << endl;
     system("pause");
     Log(LogGrade::INFO, "Game finished");
     return;
 }
 
-// ÊµÏÖ Run() º¯Êı
+// å®ç° Run() å‡½æ•°
 void Run() {
     
     while (true) {
@@ -140,28 +140,28 @@ void Run() {
     printf("%s\n", "                  ");
 
     vnout("PaperVisualNovel", 0.8, white, true);
-    vnout("Ç§Ò³Ğ¡ËµÒıÇæ", 0.8, white, true);
+    vnout("åƒé¡µå°è¯´å¼•æ“", 0.8, white, true);
     vnout(VERSION, 0.8, white, true);
     cout << endl;
     Log(LogGrade::INFO, "Running main menu Done");
         std::vector<std::string> menu_options = {
-         "1. ¼ÓÔØÓÎÏ·",
-         "2. ½Ì³Ì",
-         "3. ²å¼ş",
-         "4. ¹ØÓÚ",
-         "5. ÍË³ö"
+         "1. åŠ è½½æ¸¸æˆ",
+         "2. æ•™ç¨‹",
+         "3. æ’ä»¶",
+         "4. å…³äº",
+         "5. é€€å‡º"
         };
         std::string selected = gum::GumWrapper::choose(
             menu_options
         );
         std::string op = "";
         if (!selected.empty()) {
-            // ÌáÈ¡µÚÒ»¸ö×Ö·û×÷ÎªÑ¡Ïî£¨"1. ¼ÓÔØÓÎÏ·" -> "1"£©
+            // æå–ç¬¬ä¸€ä¸ªå­—ç¬¦ä½œä¸ºé€‰é¡¹ï¼ˆ"1. åŠ è½½æ¸¸æˆ" -> "1"ï¼‰
             op = selected.substr(0, 1);
 
         }
         else {
-            cout << "Î´Ñ¡ÔñÈÎºÎÑ¡Ïî" << endl;
+            cout << "æœªé€‰æ‹©ä»»ä½•é€‰é¡¹" << endl;
         }
         Log(LogGrade::INFO, "Running main menu op: " + op);
         if (op == "1") {
@@ -169,53 +169,53 @@ void Run() {
             Log(LogGrade::INFO, "Load Game choose Menu.");
             if (!fs::exists(basePath)) {
                 Log(LogGrade::ERR, "Game directory does not exist");
-                MessageBoxA(NULL, "´íÎó£ºÓÎÏ·Ä¿Â¼²»´æÔÚ", "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, "é”™è¯¯ï¼šæ¸¸æˆç›®å½•ä¸å­˜åœ¨", "é”™è¯¯", MB_ICONERROR | MB_OK);
                 continue;
             }
 
             vector<string> folderNames;
-            vector<pair<int, int>> endingStats; // ´æ´¢Ã¿¸öÓÎÏ·µÄ½á¾ÖÍ³¼Æ
-            vector<string> saveInfos; // ĞÂÔö£º´æµµĞÅÏ¢
+            vector<pair<int, int>> endingStats; // å­˜å‚¨æ¯ä¸ªæ¸¸æˆçš„ç»“å±€ç»Ÿè®¡
+            vector<string> saveInfos; // æ–°å¢ï¼šå­˜æ¡£ä¿¡æ¯
 
-            // ÊÕ¼¯ÓÎÏ·ÎÄ¼ş¼ĞĞÅÏ¢
+            // æ”¶é›†æ¸¸æˆæ–‡ä»¶å¤¹ä¿¡æ¯
             for (const auto& entry : fs::directory_iterator(basePath)) {
                 if (entry.is_directory()) {
                     string folderPath = entry.path().string() + "\\";
                     string folderName = getGameFolderName(entry.path().string());
                     folderNames.push_back(folderName);
 
-                    // »ñÈ¡¸ÃÓÎÏ·µÄ½á¾ÖÍ³¼Æ
+                    // è·å–è¯¥æ¸¸æˆçš„ç»“å±€ç»Ÿè®¡
                     auto stats = getGameEndingStats(folderPath);
                     endingStats.push_back(stats);
-                    // ¼ì²é´æµµ×´Ì¬
+                    // æ£€æŸ¥å­˜æ¡£çŠ¶æ€
                     string pgnFile = folderPath + folderName + ".pgn";
                     if (fs::exists(pgnFile)) {
                         saveInfos.push_back(getSaveInfo(pgnFile));
                     }
                     else {
-                        saveInfos.push_back("ÎŞÓÎÏ·ÎÄ¼ş");
+                        saveInfos.push_back("æ— æ¸¸æˆæ–‡ä»¶");
                     }
                 }
             }
             if (folderNames.empty()) {
                 Log(LogGrade::ERR, "No game folders found");
-                MessageBoxA(NULL, "´íÎó£ºÃ»ÓĞÕÒµ½ÓÎÏ·ÎÄ¼ş¼Ğ", "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, "é”™è¯¯ï¼šæ²¡æœ‰æ‰¾åˆ°æ¸¸æˆæ–‡ä»¶å¤¹", "é”™è¯¯", MB_ICONERROR | MB_OK);
             }
             else {
                 system("cls");
-                cout << "========== ÓÎÏ·ÁĞ±í ==========" << endl;
-                cout << "£¨À¨ºÅÄÚÎª½á¾ÖÊÕ¼¯Çé¿ö£¬ÓÒ²àÎª´æµµ×´Ì¬£©" << endl;
+                cout << "========== æ¸¸æˆåˆ—è¡¨ ==========" << endl;
+                cout << "ï¼ˆæ‹¬å·å†…ä¸ºç»“å±€æ”¶é›†æƒ…å†µï¼Œå³ä¾§ä¸ºå­˜æ¡£çŠ¶æ€ï¼‰" << endl;
                 cout << "==============================" << endl;
                 cout << endl;
 
-                // ÏÔÊ¾´ø½á¾ÖÍ³¼ÆºÍ´æµµ×´Ì¬µÄÓÎÏ·ÁĞ±í
+                // æ˜¾ç¤ºå¸¦ç»“å±€ç»Ÿè®¡å’Œå­˜æ¡£çŠ¶æ€çš„æ¸¸æˆåˆ—è¡¨
                 for (size_t i = 0; i < folderNames.size(); i++) {
                     int collected = endingStats[i].first;
                     int total = endingStats[i].second;
 
                     cout << i + 1 << ". " << folderNames[i];
 
-                    // ÏÔÊ¾½á¾ÖÊÕ¼¯Çé¿ö
+                    // æ˜¾ç¤ºç»“å±€æ”¶é›†æƒ…å†µ
                     if (total > 0) {
                         float percentage = (total > 0) ? (static_cast<float>(collected) / total * 100) : 0;
 
@@ -241,13 +241,13 @@ void Run() {
                         SetConsoleTextAttribute(hConsole, 7);
                     }
                     else {
-                        cout << " [ÎŞ½á¾Ö]";
+                        cout << " [æ— ç»“å±€]";
                     }
 
-                    // ÏÔÊ¾´æµµ×´Ì¬£¨ÓÒ¶ÔÆë£©
+                    // æ˜¾ç¤ºå­˜æ¡£çŠ¶æ€ï¼ˆå³å¯¹é½ï¼‰
                     cout << "   ";
-                    if (saveInfos[i] != "ÎŞ´æµµ") {
-                        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10); // ÂÌÉ«
+                    if (saveInfos[i] != "æ— å­˜æ¡£") {
+                        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 10); // ç»¿è‰²
                         cout << saveInfos[i];
                         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
                     }
@@ -261,7 +261,7 @@ void Run() {
                 cout << endl;
 
                 cout << endl;
-                cout << "ÇëÑ¡ÔñÓÎÏ· (ÊäÈëÊı×Ö): ";
+                cout << "è¯·é€‰æ‹©æ¸¸æˆ (è¾“å…¥æ•°å­—): ";
                 Log(LogGrade::INFO, "Game choose menu loaded.");
 
                 getKeyforGameMenu:
@@ -278,7 +278,7 @@ void Run() {
                     choice_num < 1 ||
                     choice_num > static_cast<int>(folderNames.size())) {
                     Log(LogGrade::ERR, "Invalid choice");
-                    MessageBoxA(NULL, "´íÎó£ºÎŞĞ§µÄÑ¡Ôñ", "´íÎó", MB_ICONERROR | MB_OK);
+                    MessageBoxA(NULL, "é”™è¯¯ï¼šæ— æ•ˆçš„é€‰æ‹©", "é”™è¯¯", MB_ICONERROR | MB_OK);
                     goto getKeyforGameMenu;
                 }
 
@@ -290,64 +290,64 @@ void Run() {
                 Log(LogGrade::DEBUG, "Game path: " + full_path);
                 if (!fs::exists(full_path)) {
                     Log(LogGrade::ERR, "Game file not found");
-                    MessageBoxA(NULL, "´íÎó£ºÕÒ²»µ½ÓÎÏ·ÎÄ¼ş", "´íÎó", MB_ICONERROR | MB_OK);
+                    MessageBoxA(NULL, "é”™è¯¯ï¼šæ‰¾ä¸åˆ°æ¸¸æˆæ–‡ä»¶", "é”™è¯¯", MB_ICONERROR | MB_OK);
                     goto getKeyforGameMenu;
                     return;
                 }
 
-                // ¼ì²éÊÇ·ñÓĞ´æµµ
+                // æ£€æŸ¥æ˜¯å¦æœ‰å­˜æ¡£
                 if (hasSaveFile(full_path)) {
                     Log(LogGrade::INFO, "Save file found");
                     system("cls");
-                    cout << "¼ì²âµ½´æµµÎÄ¼ş£¬ÊÇ·ñ¼ÌĞøÓÎÏ·£¿" << endl;
-                    // ´æµµ²Ëµ¥Ñ¡Ïî
+                    cout << "æ£€æµ‹åˆ°å­˜æ¡£æ–‡ä»¶ï¼Œæ˜¯å¦ç»§ç»­æ¸¸æˆï¼Ÿ" << endl;
+                    // å­˜æ¡£èœå•é€‰é¡¹
                     std::vector<std::string> save_menu_options = {
-                        "1. ¼ÌĞøÓÎÏ·£¨´Ó´æµµ¿ªÊ¼£©",
-                        "2. ¿ªÊ¼ĞÂÓÎÏ·",
-                        "3. É¾³ı´æµµ",
-                        "4. ·µ»Ø"
+                        "1. ç»§ç»­æ¸¸æˆï¼ˆä»å­˜æ¡£å¼€å§‹ï¼‰",
+                        "2. å¼€å§‹æ–°æ¸¸æˆ",
+                        "3. åˆ é™¤å­˜æ¡£",
+                        "4. è¿”å›"
                     };
 
                     std::string selected = "";
                     std::string saveChoice = "";
 
-                    // Ê¹ÓÃgum½øĞĞÑ¡Ôñ
+                    // ä½¿ç”¨gumè¿›è¡Œé€‰æ‹©
                     if (gum::GumWrapper::is_available()) {
                         try {
                             selected = gum::GumWrapper::choose(save_menu_options);
 
                             if (!selected.empty()) {
-                                // ÌáÈ¡µÚÒ»¸ö×Ö·û×÷ÎªÑ¡ÏîÊı×Ö
+                                // æå–ç¬¬ä¸€ä¸ªå­—ç¬¦ä½œä¸ºé€‰é¡¹æ•°å­—
                                 saveChoice = selected.substr(0, 1);
                             }
                         }
                         catch (const std::exception& e) {
                             Log(LogGrade::ERR, "Gum selection error: " + std::string(e.what()));
-                            // gumÊ§°Ü£¬»ØÍËµ½Ô­Ê¼·½·¨
+                            // gumå¤±è´¥ï¼Œå›é€€åˆ°åŸå§‹æ–¹æ³•
                             saveChoice = "";
                         }
                     }
 
-                    // Èç¹ûgum²»¿ÉÓÃ»òÊ§°Ü£¬»ØÍËµ½Ô­Ê¼·½·¨
+                    // å¦‚æœgumä¸å¯ç”¨æˆ–å¤±è´¥ï¼Œå›é€€åˆ°åŸå§‹æ–¹æ³•
                     if (saveChoice.empty() || !(saveChoice == "1" || saveChoice == "2" || saveChoice == "3" || saveChoice == "4")) {
                         Log(LogGrade::INFO, "Falling back to original save menu display");
                         cout << "==============================" << endl;
-                        cout << "¼ì²âµ½´æµµÎÄ¼ş" << endl;
-                        cout << "1. ¼ÌĞøÓÎÏ·£¨´Ó´æµµ¿ªÊ¼£©" << endl;
-                        cout << "2. ¿ªÊ¼ĞÂÓÎÏ·" << endl;
-                        cout << "3. É¾³ı´æµµ" << endl;
-                        cout << "4. ·µ»Ø" << endl;
+                        cout << "æ£€æµ‹åˆ°å­˜æ¡£æ–‡ä»¶" << endl;
+                        cout << "1. ç»§ç»­æ¸¸æˆï¼ˆä»å­˜æ¡£å¼€å§‹ï¼‰" << endl;
+                        cout << "2. å¼€å§‹æ–°æ¸¸æˆ" << endl;
+                        cout << "3. åˆ é™¤å­˜æ¡£" << endl;
+                        cout << "4. è¿”å›" << endl;
                         cout << "==============================" << endl;
-                        cout << "ÇëÑ¡Ôñ: ";
+                        cout << "è¯·é€‰æ‹©: ";
 
                         saveChoice = getKeyName();
                     }
 
                     Log(LogGrade::DEBUG, "Save choice: " + saveChoice);
 
-                    // ´¦ÀíÑ¡Ôñ½á¹û
+                    // å¤„ç†é€‰æ‹©ç»“æœ
                     if (saveChoice == "1") {
-                        // ¼ÌĞøÓÎÏ·£¨´Ó´æµµ¿ªÊ¼£©
+                        // ç»§ç»­æ¸¸æˆï¼ˆä»å­˜æ¡£å¼€å§‹ï¼‰
                         SaveData saveData;
                         fs::path savePath = fs::path(where) / "saves" / "autosave.sav";
                         Log(LogGrade::DEBUG, "Load save path: " + savePath.string());
@@ -358,22 +358,22 @@ void Run() {
                         }
                         else {
                             Log(LogGrade::ERR, "Save file load failed");
-                            MessageBoxA(NULL, "´íÎó£ºÎŞ·¨¼ÓÔØ´æµµ", "´íÎó", MB_ICONERROR | MB_OK);
+                            MessageBoxA(NULL, "é”™è¯¯ï¼šæ— æ³•åŠ è½½å­˜æ¡£", "é”™è¯¯", MB_ICONERROR | MB_OK);
                             RunPgn(where, file);
                         }
                     }
                     else if (saveChoice == "2") {
                         Log(LogGrade::INFO, "Start new game");
-                        // ¿ªÊ¼ĞÂÓÎÏ·
+                        // å¼€å§‹æ–°æ¸¸æˆ
                         RunPgn(where, file);
                     }
                     else if (saveChoice == "3") {
                         Log(LogGrade::INFO, "Delete save file");
-                        // É¾³ı´æµµ
+                        // åˆ é™¤å­˜æ¡£
                         fs::path savePath = fs::path(where) / "saves" / "autosave.sav";
                         if (fs::remove(savePath)) {
                             Log(LogGrade::INFO, "Save file deleted");
-                            cout << "´æµµÒÑÉ¾³ı" << endl;
+                            cout << "å­˜æ¡£å·²åˆ é™¤" << endl;
                             Sleep(1000);
                         }
                         RunPgn(where, file);
@@ -384,14 +384,14 @@ void Run() {
                         return;
                     }
                     else {
-                        // ÎŞĞ§Ñ¡Ôñ£¬Ä¬ÈÏ¿ªÊ¼ĞÂÓÎÏ·
+                        // æ— æ•ˆé€‰æ‹©ï¼Œé»˜è®¤å¼€å§‹æ–°æ¸¸æˆ
                         Log(LogGrade::WARNING, "Invalid save choice, default to new game");
                         RunPgn(where, file);
                     }
                 }
                 else {
                     Log(LogGrade::INFO, "No save file found");
-                    // Ã»ÓĞ´æµµ£¬Ö±½Ó¿ªÊ¼ĞÂÓÎÏ·
+                    // æ²¡æœ‰å­˜æ¡£ï¼Œç›´æ¥å¼€å§‹æ–°æ¸¸æˆ
                     RunPgn(where, file);
                 }
                 continue;
@@ -408,7 +408,7 @@ void Run() {
             }
             else {
                 Log(LogGrade::ERR, "Tutorial file not found");
-                MessageBoxA(NULL, "´íÎó£ºÕÒ²»µ½½Ì³ÌÎÄ¼ş", "´íÎó", MB_ICONERROR | MB_OK);
+                MessageBoxA(NULL, "é”™è¯¯ï¼šæ‰¾ä¸åˆ°æ•™ç¨‹æ–‡ä»¶", "é”™è¯¯", MB_ICONERROR | MB_OK);
             }
 
             system("cls");
@@ -417,25 +417,25 @@ void Run() {
         else if (op == "3") {
             Log(LogGrade::INFO, "Plugin management selected");
 
-            // ¶ÁÈ¡ÒÑ°²×°µÄ²å¼ş
+            // è¯»å–å·²å®‰è£…çš„æ’ä»¶
             std::vector<PluginInfo> plugins = readInstalledPlugins();
 
             if (plugins.empty()) {
                 system("cls");
-                std::cout << "========== ²å¼ş¹ÜÀí ==========" << std::endl;
-                std::cout << "µ±Ç°Ã»ÓĞ°²×°ÈÎºÎ²å¼ş¡£" << std::endl;
+                std::cout << "========== æ’ä»¶ç®¡ç† ==========" << std::endl;
+                std::cout << "å½“å‰æ²¡æœ‰å®‰è£…ä»»ä½•æ’ä»¶ã€‚" << std::endl;
                 std::cout << "==============================" << std::endl;
                 system("pause");
                 continue;
             }
             else {
                 system("cls");
-                std::cout << "========== ÒÑ°²×°²å¼ş ==========" << std::endl;
-                std::cout << "²å¼şÊıÁ¿: " << plugins.size() << std::endl;
+                std::cout << "========== å·²å®‰è£…æ’ä»¶ ==========" << std::endl;
+                std::cout << "æ’ä»¶æ•°é‡: " << plugins.size() << std::endl;
                 std::cout << "================================" << std::endl;
                 std::cout << std::endl;
 
-                // ÏÔÊ¾ËùÓĞ²å¼şĞÅÏ¢
+                // æ˜¾ç¤ºæ‰€æœ‰æ’ä»¶ä¿¡æ¯
                 for (size_t i = 0; i < plugins.size(); i++) {
                     const PluginInfo& plugin = plugins[i];
 
@@ -448,14 +448,14 @@ void Run() {
                     std::cout << std::endl;
 
                     if (!plugin.description.empty()) {
-                        std::cout << "   ÃèÊö: " << plugin.description << std::endl;
+                        std::cout << "   æè¿°: " << plugin.description << std::endl;
                     }
 
                     if (!plugin.author.empty()) {
-                        std::cout << "   ×÷Õß: " << plugin.author << std::endl;
+                        std::cout << "   ä½œè€…: " << plugin.author << std::endl;
                     }
 
-                    std::cout << "   ÃüÁî: " << plugin.runCommand << " " << plugin.runFile << std::endl;
+                    std::cout << "   å‘½ä»¤: " << plugin.runCommand << " " << plugin.runFile << std::endl;
                     std::cout << std::endl;
                 }
                 system("pause");
@@ -480,15 +480,17 @@ void Run() {
             printf("%s\n", " /    / _ \\ |/ / -_) /    ");
             printf("%s\n", "/_/|_/\\___/___/\\__/_/     ");
             printf("%s\n", "                          ");
-            cout << "¹ØÓÚ PaperVisualNovel" << endl;
+            cout << "å…³äº PaperVisualNovel" << endl;
             cout << "======================" << endl;
-            cout << "PaperVisualNovel ÊÇÒ»¸öÓÃ C++ ±àĞ´µÄÊÓ¾õĞ¡ËµÒıÇæ¡£" << endl;
-            cout << "Äã¿ÉÒÔÊ¹ÓÃËüÀ´´´½¨Äã×Ô¼ºµÄÊÓ¾õĞ¡Ëµ¡£" << endl;
-            cout << "¸ĞĞ»Ê¹ÓÃ PaperVisualNovel£¡" << endl;
-            cout << "×÷Õß£ºcolaSensei (in BILIBILI & Github)" << endl;
-            cout << "¹¹½¨ÈÕÆÚ£º" << __DATE__ << endl;
-            cout << "°æ±¾ºÅ£º" << VERSION << endl;
-            cout << endl << "°´ÈÎÒâ¼ü·µ»Ø..." << endl;
+            cout << "PaperVisualNovel æ˜¯ä¸€ä¸ªç”¨ C++ ç¼–å†™çš„è§†è§‰å°è¯´å¼•æ“ã€‚" << endl;
+            cout << "ä½ å¯ä»¥ä½¿ç”¨å®ƒæ¥åˆ›å»ºä½ è‡ªå·±çš„è§†è§‰å°è¯´ã€‚" << endl;
+            cout << "æ„Ÿè°¢ä½¿ç”¨ PaperVisualNovelï¼" << endl;
+            cout << "ä½œè€…ï¼šcolaSensei (in BILIBILI & Github)" << endl;
+            std::cout << "è½¯ä»¶åŒ…å«äº†ä»¥ä¸‹ç»„ä»¶ï¼š" << std::endl;
+            std::cout << " - Gum: Copyright (c) 2024 go-gum" << std::endl;
+            cout << "æ„å»ºæ—¥æœŸï¼š" << __DATE__ << endl;
+            cout << "ç‰ˆæœ¬å·ï¼š" << VERSION << endl;
+            cout << endl << "æŒ‰ä»»æ„é”®è¿”å›..." << endl;
             getKeyName();
             Log(LogGrade::INFO, "Return to main menu");
             continue;
